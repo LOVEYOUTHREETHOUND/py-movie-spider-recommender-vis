@@ -1,0 +1,119 @@
+{% extends "base.html" %} {% block content %}
+<div class="container mt-4">
+  <h1 class="mb-4">{{ title }}</h1>
+
+  <!-- 类型导航 -->
+  <div class="mb-4">
+    <nav class="nav nav-pills">
+      <a
+        class="nav-link {% if not current_type %}active{% endif %}"
+        href="{{ url_for('movie.movie_list') }}"
+        >全部</a
+      >
+      {% for type in all_types %}
+      <a
+        class="nav-link {% if current_type and current_type.id == type.id %}active{% endif %}"
+        href="{{ url_for('movie.movie_list_by_type', type_name=type.name) }}"
+      >
+        {{ type.name }}
+      </a>
+      {% endfor %}
+    </nav>
+  </div>
+
+  <!-- 电影列表 -->
+  <div class="row">
+    {% for movie in movies.items %}
+    <div class="col-md-3 mb-4">
+      <div class="card h-100">
+        {% if movie.poster_data %}
+        <img
+          src="{{ url_for('movie.movie_poster', movie_id=movie.id) }}"
+          class="card-img-top"
+          alt="{{ movie.title }}"
+          style="height: 300px; object-fit: cover"
+        />
+        {% else %}
+        <div
+          class="card-img-top bg-light d-flex align-items-center justify-content-center"
+          style="height: 300px"
+        >
+          <i class="fas fa-film fa-3x text-muted"></i>
+        </div>
+        {% endif %}
+        <div class="card-body">
+          <h5 class="card-title" style="height: 3rem; overflow: hidden">
+            {{ movie.title }}
+          </h5>
+          <p class="card-text">
+            <small class="text-muted">
+              <i class="fas fa-calendar-alt me-1"></i>{{ movie.year or '未知' }}
+            </small>
+            <br />
+            {% if movie.rating %}
+            <span class="text-warning">
+              <i class="fas fa-star"></i>
+              {{ "%.1f"|format(movie.rating) }}
+            </span>
+            {% endif %}
+          </p>
+          <div class="d-flex justify-content-between align-items-center">
+            <a
+              href="{{ url_for('movie.movie_detail', movie_id=movie.id) }}"
+              class="btn btn-sm btn-outline-primary"
+              >查看详情</a
+            >
+            <small class="text-muted">
+              {% for type in movie.types %}
+              <span class="badge bg-secondary">{{ type.name }}</span>
+              {% endfor %}
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- 分页 -->
+  {% if movies.pages > 1 %}
+  <nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+      {% if movies.has_prev %}
+      <li class="page-item">
+        <a
+          class="page-link"
+          href="{{ url_for(request.endpoint, page=movies.prev_num, **request.view_args) }}"
+        >
+          上一页
+        </a>
+      </li>
+      {% endif %} {% for page_num in movies.iter_pages(left_edge=2,
+      left_current=2, right_current=3, right_edge=2) %} {% if page_num %}
+      <li class="page-item {% if page_num == movies.page %}active{% endif %}">
+        <a
+          class="page-link"
+          href="{{ url_for(request.endpoint, page=page_num, **request.view_args) }}"
+        >
+          {{ page_num }}
+        </a>
+      </li>
+      {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">...</span>
+      </li>
+      {% endif %} {% endfor %} {% if movies.has_next %}
+      <li class="page-item">
+        <a
+          class="page-link"
+          href="{{ url_for(request.endpoint, page=movies.next_num, **request.view_args) }}"
+        >
+          下一页
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

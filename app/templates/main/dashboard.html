@@ -1,0 +1,173 @@
+{% extends "base.html" %} {% block title %}仪表板 - {{ super() }}{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <h1 class="mb-4">欢迎回来，{{ current_user.username }}</h1>
+    </div>
+  </div>
+
+  <!-- 用户统计 -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card bg-primary text-white">
+        <div class="card-body text-center">
+          <h3 class="card-title">{{ stats.total_ratings }}</h3>
+          <p class="card-text">总评分数</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <h3 class="card-title">{{ stats.today_ratings }}</h3>
+          <p class="card-text">今日评分</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-info text-white">
+        <div class="card-body text-center">
+          <h3 class="card-title">{{ stats.avg_rating }}</h3>
+          <p class="card-text">平均评分</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 最近评分 -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="mb-0">最近评分</h4>
+        </div>
+        <div class="card-body">
+          {% if recent_ratings %}
+          <div class="list-group">
+            {% for rating in recent_ratings %}
+            <div class="list-group-item">
+              <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ rating.movie.title }}</h5>
+                <small class="text-muted"
+                  >{{ rating.created_at.strftime('%Y-%m-%d') }}</small
+                >
+              </div>
+              <p class="mb-1">
+                {% for i in range(5) %}
+                <i
+                  class="fas fa-star {% if i < rating.rating %}text-warning{% endif %}"
+                ></i>
+                {% endfor %}
+              </p>
+              {% if rating.comment %}
+              <small class="text-muted">{{ rating.comment }}</small>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted">暂无评分记录</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 最新电影 -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <h4 class="mb-3">最新上线</h4>
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for movie in latest_movies %}
+        <div class="col">
+          <div class="card h-100">
+            {% if movie.poster_url %}
+            <img
+              src="{{ movie.poster_url }}"
+              class="card-img-top"
+              alt="{{ movie.title }}"
+              style="height: 300px; object-fit: cover"
+            />
+            {% else %}
+            <div
+              class="card-img-top bg-secondary d-flex align-items-center justify-content-center"
+              style="height: 300px"
+            >
+              <i class="fas fa-film fa-3x text-white"></i>
+            </div>
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title">{{ movie.title }}</h5>
+              <p class="card-text">
+                <small class="text-muted">
+                  <i class="fas fa-calendar-alt me-1"></i>{{ movie.year }}
+                </small>
+                <br />
+                <small class="text-muted">
+                  <i class="fas fa-star me-1"></i>{{
+                  "%.1f"|format(movie.rating_avg) }}
+                </small>
+              </p>
+              <a
+                href="{{ url_for('movie.movie_detail', movie_id=movie.id) }}"
+                class="btn btn-primary btn-sm"
+                >查看详情</a
+              >
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 高分电影 -->
+  <div class="row">
+    <div class="col-md-12">
+      <h4 class="mb-3">高分电影</h4>
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for movie in top_rated_movies %}
+        <div class="col">
+          <div class="card h-100">
+            {% if movie.poster_url %}
+            <img
+              src="{{ movie.poster_url }}"
+              class="card-img-top"
+              alt="{{ movie.title }}"
+              style="height: 300px; object-fit: cover"
+            />
+            {% else %}
+            <div
+              class="card-img-top bg-secondary d-flex align-items-center justify-content-center"
+              style="height: 300px"
+            >
+              <i class="fas fa-film fa-3x text-white"></i>
+            </div>
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title">{{ movie.title }}</h5>
+              <p class="card-text">
+                <small class="text-muted">
+                  <i class="fas fa-calendar-alt me-1"></i>{{ movie.year }}
+                </small>
+                <br />
+                <small class="text-muted">
+                  <i class="fas fa-star me-1"></i>{{
+                  "%.1f"|format(movie.rating_avg) }}
+                </small>
+              </p>
+              <a
+                href="{{ url_for('movie.movie_detail', movie_id=movie.id) }}"
+                class="btn btn-primary btn-sm"
+                >查看详情</a
+              >
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

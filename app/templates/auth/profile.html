@@ -1,0 +1,112 @@
+{% extends "base.html" %} {% block title %}个人资料 - {{ super() }}{% endblock
+%} {% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      <div class="card">
+        <div class="card-body">
+          <h2 class="card-title mb-4">个人资料</h2>
+
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="text-center">
+                <i class="fas fa-user-circle fa-6x text-primary"></i>
+              </div>
+            </div>
+            <div class="col-md-8">
+              <h3>{{ user.username }}</h3>
+              <p class="text-muted">
+                <i class="fas fa-envelope me-2"></i>{{ user.email }}
+              </p>
+              <p class="text-muted">
+                <i class="fas fa-clock me-2"></i>注册于：{{
+                user.created_at.strftime('%Y-%m-%d') }}
+              </p>
+            </div>
+          </div>
+
+          <hr />
+
+          <!-- 用户统计 -->
+          <h4 class="mb-3">活动统计</h4>
+          <div class="row g-4">
+            <div class="col-md-4">
+              <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                  <h3 class="card-title">{{ user.ratings|length }}</h3>
+                  <p class="card-text">已评价电影</p>
+                </div>
+              </div>
+            </div>
+            {% if user.ratings %}
+            <div class="col-md-4">
+              <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                  <h3 class="card-title">
+                    {{
+                    "%.1f"|format(user.ratings|map(attribute='rating')|list|avg)
+                    }}
+                  </h3>
+                  <p class="card-text">平均评分</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                  <h3 class="card-title">
+                    {{ user.ratings|selectattr('comment')|list|length }}
+                  </h3>
+                  <p class="card-text">评论数</p>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="mt-4">
+            <a
+              href="{{ url_for('auth.edit_profile') }}"
+              class="btn btn-primary"
+            >
+              <i class="fas fa-edit me-2"></i>编辑资料
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 最近评分 -->
+      {% if user.ratings %}
+      <div class="card mt-4">
+        <div class="card-body">
+          <h4 class="card-title mb-4">最近评分</h4>
+          <div class="list-group">
+            {% for rating in user.ratings|sort(attribute='created_at',
+            reverse=true)|slice(5) %}
+            <div class="list-group-item">
+              <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ rating.movie.title }}</h5>
+                <small class="text-muted">
+                  {{ rating.created_at.strftime('%Y-%m-%d') }}
+                </small>
+              </div>
+              <p class="mb-1">
+                {% for i in range(5) %}
+                <i
+                  class="fas fa-star {% if i < rating.rating %}text-warning{% endif %}"
+                ></i>
+                {% endfor %}
+              </p>
+              {% if rating.comment %}
+              <small class="text-muted">{{ rating.comment }}</small>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,131 @@
+/* 全局样式 */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
+
+/* 导航栏样式 */
+.navbar {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+/* 卡片样式 */
+.card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+/* 评分星星样式 */
+.rating-stars {
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.rating-stars .fa-star {
+  color: #ddd;
+  transition: color 0.2s;
+}
+
+.rating-stars .fa-star.text-warning {
+  color: #ffc107;
+}
+
+.rating-stars .rating-star:hover,
+.rating-stars .rating-star:hover ~ .rating-star {
+  color: #ffc107;
+}
+
+/* 按钮样式 */
+.btn {
+  border-radius: 20px;
+  padding: 8px 20px;
+}
+
+.btn-primary {
+  background-color: #4a90e2;
+  border-color: #4a90e2;
+}
+
+.btn-primary:hover {
+  background-color: #357abd;
+  border-color: #357abd;
+}
+
+/* 搜索框样式 */
+.search-form .form-control {
+  border-radius: 20px;
+  padding-left: 20px;
+}
+
+.search-form .btn {
+  border-radius: 20px;
+}
+
+/* 分页样式 */
+.pagination {
+  margin-top: 2rem;
+}
+
+.page-link {
+  border-radius: 20px;
+  margin: 0 5px;
+  color: #4a90e2;
+}
+
+.page-item.active .page-link {
+  background-color: #4a90e2;
+  border-color: #4a90e2;
+}
+
+/* 电影卡片样式 */
+.movie-card {
+  height: 100%;
+}
+
+.movie-card .card-img-top {
+  height: 300px;
+  object-fit: cover;
+}
+
+.movie-card .card-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 可视化图表容器样式 */
+.chart-container {
+  min-height: 400px;
+  margin-bottom: 2rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .movie-card .card-img-top {
+    height: 200px;
+  }
+
+  .chart-container {
+    min-height: 300px;
+  }
+
+  .navbar-brand {
+    font-size: 1.2rem;
+  }
+}

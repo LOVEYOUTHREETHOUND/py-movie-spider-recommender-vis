@@ -1,0 +1,191 @@
+{% extends "base.html" %} {% block content %}
+<div class="container mt-4">
+  <h2 class="text-center mb-4">电影数据可视化分析</h2>
+
+  <div class="row">
+    <!-- 关系网络图 -->
+    <div class="col-12 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h4>演员与导演合作关系网络</h4>
+        </div>
+        <div class="card-body">
+          <div
+            id="relationship-network"
+            style="width: 100%; height: 600px"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 评分热力图 -->
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h4>电影类型评分分布热力图</h4>
+        </div>
+        <div class="card-body">
+          <div id="rating-heatmap" style="width: 100%; height: 600px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 引入 ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+<script>
+  // 初始化图表
+  let networkChart = echarts.init(
+    document.getElementById("relationship-network")
+  );
+  let heatmapChart = echarts.init(document.getElementById("rating-heatmap"));
+
+  // 加载关系网络图数据
+  fetch("/api/visualizations/relationship-network")
+    .then((response) => response.json())
+    .then((data) => {
+      let option = {
+        title: {
+          text: "演员与导演合作关系网络",
+          top: "top",
+          left: "center",
+        },
+        tooltip: {
+          formatter: function (params) {
+            if (params.dataType === "node") {
+              return `${params.data.name}<br/>作品数: ${params.data.value}`;
+            }
+            return "";
+          },
+        },
+        legend: {
+          data: ["导演", "演员"],
+          top: "bottom",
+        },
+        animationDurationUpdate: 1500,
+        animationEasingUpdate: "quinticInOut",
+        series: [
+          {
+            type: "graph",
+            layout: "force",
+            data: data.nodes,
+            links: data.links,
+            categories: data.categories,
+            roam: true,
+            label: {
+              show: true,
+              position: "right",
+              formatter: "{b}",
+            },
+            force: {
+              repulsion: 100,
+              gravity: 0.1,
+              edgeLength: 30,
+              layoutAnimation: true,
+            },
+            lineStyle: {
+              color: "source",
+              curveness: 0.3,
+            },
+          },
+        ],
+      };
+      networkChart.setOption(option);
+    })
+    .catch((error) => console.error("Error:", error));
+
+  // 加载评分热力图数据
+  fetch("/api/visualizations/rating-heatmap")
+    .then((response) => response.json())
+    .then((data) => {
+      let option = {
+        title: {
+          text: "电影类型评分分布热力图",
+          left: "center",
+        },
+        tooltip: {
+          position: "top",
+          formatter: function (params) {
+            const movie = data.movies[params.dataIndex];
+            return `电影: ${movie[2]}<br/>年份: ${
+              data.years[movie[0]]
+            }<br/>类型: ${data.types[movie[1]]}<br/>评分: ${movie[3]}`;
+          },
+        },
+        grid: {
+          top: "10%",
+          bottom: "15%",
+        },
+        xAxis: {
+          type: "category",
+          data: data.years,
+          splitArea: {
+            show: true,
+          },
+          name: "年份",
+          nameLocation: "middle",
+          nameGap: 30,
+        },
+        yAxis: {
+          type: "category",
+          data: data.types,
+          splitArea: {
+            show: true,
+          },
+          name: "电影类型",
+          nameLocation: "middle",
+          nameGap: 50,
+        },
+        visualMap: {
+          min: 0,
+          max: 10,
+          calculable: true,
+          orient: "horizontal",
+          left: "center",
+          bottom: "0%",
+          inRange: {
+            color: [
+              "#313695",
+              "#4575b4",
+              "#74add1",
+              "#abd9e9",
+              "#e0f3f8",
+              "#ffffbf",
+              "#fee090",
+              "#fdae61",
+              "#f46d43",
+              "#d73027",
+              "#a50026",
+            ],
+          },
+        },
+        series: [
+          {
+            name: "评分分布",
+            type: "heatmap",
+            data: data.movies.map((movie) => [movie[0], movie[1], movie[3]]),
+            label: {
+              show: false,
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowColor: "rgba(0, 0, 0, 0.5)",
+              },
+            },
+          },
+        ],
+      };
+      heatmapChart.setOption(option);
+    })
+    .catch((error) => console.error("Error:", error));
+
+  // 响应式调整
+  window.addEventListener("resize", function () {
+    networkChart.resize();
+    heatmapChart.resize();
+  });
+</script>
+{% endblock %}

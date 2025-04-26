@@ -1,0 +1,109 @@
+{% extends "base.html" %} {% block title %}编辑个人资料 - {{ super() }}{%
+endblock %} {% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-body">
+          <h2 class="card-title mb-4">编辑个人资料</h2>
+
+          <form method="POST">
+            <div class="mb-3">
+              <label for="username" class="form-label">用户名</label>
+              <input
+                type="text"
+                class="form-control"
+                id="username"
+                value="{{ current_user.username }}"
+                disabled
+              />
+              <small class="text-muted">用户名不可更改</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="email" class="form-label">电子邮箱</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                value="{{ current_user.email }}"
+                required
+              />
+            </div>
+
+            <hr class="my-4" />
+
+            <h4>修改密码</h4>
+            <p class="text-muted">如果不需要修改密码，请留空</p>
+
+            <div class="mb-3">
+              <label for="current_password" class="form-label">当前密码</label>
+              <input
+                type="password"
+                class="form-control"
+                id="current_password"
+                name="current_password"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="new_password" class="form-label">新密码</label>
+              <input
+                type="password"
+                class="form-control"
+                id="new_password"
+                name="new_password"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="confirm_password" class="form-label"
+                >确认新密码</label
+              >
+              <input
+                type="password"
+                class="form-control"
+                id="confirm_password"
+                name="confirm_password"
+              />
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('auth.profile') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>返回
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>保存更改
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  $(document).ready(function () {
+    $("form").submit(function (e) {
+      var new_password = $("#new_password").val();
+      var confirm_password = $("#confirm_password").val();
+
+      if (new_password || confirm_password) {
+        if (!$("#current_password").val()) {
+          e.preventDefault();
+          alert("请输入当前密码");
+          return;
+        }
+
+        if (new_password !== confirm_password) {
+          e.preventDefault();
+          alert("两次输入的新密码不一致");
+          return;
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

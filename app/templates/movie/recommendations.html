@@ -1,0 +1,106 @@
+{% extends "base.html" %} {% block title %}为您推荐 - {{ super() }}{% endblock
+%} {% block content %}
+<div class="container mt-4">
+  <h1 class="mb-4">为您推荐</h1>
+
+  {% if movies %}
+  <div class="row row-cols-1 row-cols-md-4 g-4">
+    {% for movie in movies %}
+    <div class="col">
+      <div class="card h-100">
+        <img
+          src="{{ url_for('movie.movie_poster', movie_id=movie.id) }}"
+          class="card-img-top"
+          alt="{{ movie.title }}"
+        />
+        <div class="card-body">
+          <h5 class="card-title">{{ movie.title }}</h5>
+          <p class="card-text">
+            <small class="text-muted"
+              >评分: {{ "%.1f"|format(movie.rating) }}</small
+            >
+          </p>
+          <div class="d-flex justify-content-between align-items-center">
+            <a
+              href="{{ url_for('movie.movie_detail', movie_id=movie.id) }}"
+              class="btn btn-primary"
+              >查看详情</a
+            >
+            <div class="rating-stars" data-movie-id="{{ movie.id }}">
+              {% for i in range(5) %}
+              <i class="fas fa-star text-muted" data-rating="{{ i + 1 }}"></i>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    <h4 class="alert-heading">暂无推荐电影</h4>
+    <p>请先对一些电影进行评分，我们将根据您的喜好为您推荐更多精彩内容。</p>
+    <hr />
+    <p class="mb-0">
+      <a href="{{ url_for('movie.movie_list') }}" class="alert-link">
+        去浏览电影 <i class="fas fa-arrow-right"></i>
+      </a>
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const ratingContainers = document.querySelectorAll(".rating-stars");
+
+    ratingContainers.forEach((container) => {
+      const stars = container.querySelectorAll(".fa-star");
+      const movieId = container.dataset.movieId;
+
+      stars.forEach((star) => {
+        star.addEventListener("mouseover", () => {
+          const rating = parseInt(star.dataset.rating);
+          stars.forEach((s, index) => {
+            s.classList.toggle("text-warning", index < rating);
+          });
+        });
+
+        star.addEventListener("mouseout", () => {
+          stars.forEach((s) => s.classList.remove("text-warning"));
+        });
+
+        star.addEventListener("click", async () => {
+          const rating = parseInt(star.dataset.rating);
+          try {
+            const response = await fetch(`/movie/rate/${movieId}`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ rating: rating }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success) {
+                // 更新星星显示
+                stars.forEach((s, index) => {
+                  s.classList.toggle("text-warning", index < rating);
+                });
+                // 显示成功消息
+                alert("评分成功！");
+              }
+            }
+          } catch (error) {
+            console.error("Error:", error);
+            alert("评分失败，请稍后重试。");
+          }
+        });
+      });
+    });
+  });
+</script>
+{% endblock %} {% endblock %}

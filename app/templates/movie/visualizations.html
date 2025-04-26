@@ -1,0 +1,248 @@
+{% extends "base.html" %} {% block title %}数据可视化{% endblock %} {% block
+styles %}
+<style>
+  .chart-container {
+    margin: 20px 0;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .chart-title {
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    color: #333;
+  }
+
+  .chart-wrapper {
+    position: relative;
+    height: 300px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    padding: 20px;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container">
+  <h1 class="my-4">电影数据可视化</h1>
+
+  <div class="grid">
+    <div class="chart-container">
+      <h2 class="chart-title">评分分布</h2>
+      <div class="chart-wrapper">
+        <canvas id="ratingDistribution"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 class="chart-title">类型分布</h2>
+      <div class="chart-wrapper">
+        <canvas id="genreDistribution"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 class="chart-title">年份分布</h2>
+      <div class="chart-wrapper">
+        <canvas id="yearDistribution"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 class="chart-title">评分趋势</h2>
+      <div class="chart-wrapper">
+        <canvas id="ratingTrend"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 class="chart-title">用户活跃度热力图</h2>
+      <div class="chart-wrapper">
+        <canvas id="activityHeatmap"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 class="chart-title">顶级导演</h2>
+      <div class="chart-wrapper">
+        <canvas id="topDirectors"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // 评分分布图
+    fetch("/api/visualizations/rating-distribution")
+      .then((response) => response.json())
+      .then((data) => {
+        new Chart(document.getElementById("ratingDistribution"), {
+          type: "bar",
+          data: {
+            labels: data.x,
+            datasets: [
+              {
+                label: "电影数量",
+                data: data.y,
+                backgroundColor: "rgba(54, 162, 235, 0.5)",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+          },
+        });
+      });
+
+    // 类型分布图
+    fetch("/api/visualizations/genre-distribution")
+      .then((response) => response.json())
+      .then((data) => {
+        new Chart(document.getElementById("genreDistribution"), {
+          type: "pie",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                data: data.values,
+                backgroundColor: [
+                  "rgba(255, 99, 132, 0.5)",
+                  "rgba(54, 162, 235, 0.5)",
+                  "rgba(255, 206, 86, 0.5)",
+                  "rgba(75, 192, 192, 0.5)",
+                  "rgba(153, 102, 255, 0.5)",
+                ],
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+          },
+        });
+      });
+
+    // 年份分布图
+    fetch("/api/visualizations/year-distribution")
+      .then((response) => response.json())
+      .then((data) => {
+        new Chart(document.getElementById("yearDistribution"), {
+          type: "line",
+          data: {
+            labels: data.x,
+            datasets: [
+              {
+                label: "电影数量",
+                data: data.y,
+                borderColor: "rgba(75, 192, 192, 1)",
+                tension: 0.1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+          },
+        });
+      });
+
+    // 评分趋势图
+    fetch("/api/visualizations/rating-trend")
+      .then((response) => response.json())
+      .then((data) => {
+        new Chart(document.getElementById("ratingTrend"), {
+          type: "line",
+          data: {
+            labels: data.x,
+            datasets: [
+              {
+                label: "平均评分",
+                data: data.y,
+                borderColor: "rgba(255, 99, 132, 1)",
+                tension: 0.1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+          },
+        });
+      });
+
+    // 活跃度热力图
+    fetch("/api/visualizations/activity-heatmap")
+      .then((response) => response.json())
+      .then((data) => {
+        new Chart(document.getElementById("activityHeatmap"), {
+          type: "heatmap",
+          data: {
+            labels: data.x,
+            datasets: data.y.map((row, i) => ({
+              label: `Week ${i + 1}`,
+              data: row,
+            })),
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: false,
+            },
+            scales: {
+              y: {
+                type: "category",
+                labels: [
+                  "周一",
+                  "周二",
+                  "周三",
+                  "周四",
+                  "周五",
+                  "周六",
+                  "周日",
+                ],
+              },
+            },
+          },
+        });
+      });
+
+    // 顶级导演图
+    fetch("/api/visualizations/top-directors")
+      .then((response) => response.json())
+      .then((data) => {
+        new Chart(document.getElementById("topDirectors"), {
+          type: "bar",
+          data: {
+            labels: data.x,
+            datasets: [
+              {
+                label: "平均评分",
+                data: data.y,
+                backgroundColor: "rgba(153, 102, 255, 0.5)",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: "y",
+          },
+        });
+      });
+  });
+</script>
+{% endblock %}

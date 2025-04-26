@@ -1,0 +1,82 @@
+{% extends "base.html" %} {% block title %}注册 - {{ super() }}{% endblock %} {%
+block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="mb-0">注册</h4>
+        </div>
+        <div class="card-body">
+          {% with messages = get_flashed_messages(with_categories=true) %} {% if
+          messages %} {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %} {% endif %} {% endwith %}
+
+          <form method="POST">
+            <div class="mb-3">
+              <label for="username" class="form-label">用户名</label>
+              <input
+                type="text"
+                class="form-control"
+                id="username"
+                name="username"
+                required
+              />
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">邮箱</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                required
+              />
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">密码</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+              />
+            </div>
+            <div class="mb-3">
+              <label for="password_confirm" class="form-label">确认密码</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password_confirm"
+                name="password_confirm"
+                required
+              />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">注册</button>
+          </form>
+
+          <div class="text-center mt-3">
+            <p>已有账号？ <a href="{{ url_for('auth.login') }}">立即登录</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  $(document).ready(function () {
+    $("form").submit(function (e) {
+      var password = $("#password").val();
+      var confirm_password = $("#password_confirm").val();
+
+      if (password !== confirm_password) {
+        e.preventDefault();
+        alert("两次输入的密码不一致！");
+      }
+    });
+  });
+</script>
+{% endblock %}
