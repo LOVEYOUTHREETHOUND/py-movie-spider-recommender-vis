@@ -6,52 +6,64 @@ endblock %} {% block styles %} {{ super() }}
     max-width: 1200px;
     margin: 0 auto;
   }
+
   .movie-header {
     display: flex;
     gap: 20px;
     margin-bottom: 30px;
   }
+
   .movie-poster {
     flex: 0 0 300px;
   }
+
   .movie-poster img {
     width: 100%;
     height: auto;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
+
   .movie-info {
     flex: 1;
   }
+
   .movie-title {
     font-size: 24px;
     margin-bottom: 10px;
   }
+
   .movie-meta {
     color: #666;
     margin-bottom: 20px;
   }
+
   .movie-meta p {
     margin: 5px 0;
   }
+
   .rating-section {
     margin: 20px 0;
     padding: 15px;
     background: #f5f5f5;
     border-radius: 8px;
   }
+
   .rating-form {
     margin-top: 15px;
   }
+
   .rating-stars {
     font-size: 24px;
     color: #ffd700;
     cursor: pointer;
   }
+
   .movie-summary {
     margin: 20px 0;
     line-height: 1.6;
   }
+
   .section-title {
     font-size: 18px;
     margin: 20px 0 10px;
@@ -64,10 +76,7 @@ endblock %} {% block styles %} {{ super() }}
   <div class="movie-header">
     <div class="movie-poster">
       {% if movie.poster_data %}
-      <img
-        src="data:{{ movie.poster_mimetype }};base64,{{ movie.poster_data|b64encode }}"
-        alt="{{ movie.title }}"
-      />
+      <img src="data:{{ movie.poster_mimetype }};base64,{{ movie.poster_data|b64encode }}" alt="{{ movie.title }}" />
       {% else %}
       <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" />
       {% endif %}
@@ -89,11 +98,6 @@ endblock %} {% block styles %} {{ super() }}
         <p>语言：{{ movie.languages }}</p>
         {% endif %} {% if movie.types %}
         <p>类型：{{ movie.types|map(attribute='name')|join('、') }}</p>
-        {% endif %} {% if movie.rating %}
-        <p>
-          豆瓣评分：{{ "%.1f"|format(movie.rating) }} ({{ movie.rating_count
-          }}人评分)
-        </p>
         {% endif %}
       </div>
 
@@ -107,15 +111,31 @@ endblock %} {% block styles %} {{ super() }}
 
       <div class="rating-section">
         <h3>用户评分</h3>
+        {% if movie.rating %}
+        <p>
+          豆瓣评分：{{ "%.1f"|format(movie.rating) }} ({{ movie.rating_count
+          }}人评分)
+        </p>
+        {% endif %}
         {% if current_user.is_authenticated %}
         <div class="rating-form">
           <div class="rating-stars" id="ratingStars">
             {% for i in range(5) %}
-            <span class="star" data-rating="{{ i + 1 }}">★</span>
+            <span class="star {% if user_rating and i < user_rating.rating %}active{% endif %}"
+              data-rating="{{ i + 1 }}">★</span>
             {% endfor %}
           </div>
           <input type="hidden" id="movieId" value="{{ movie.id }}" />
           <div id="ratingMessage"></div>
+          <div class="rating-info mt-2" id="systemRatingInfo" {% if not user_rating %}style="display: none;" {% endif
+            %}>
+            <small class="text-muted">
+              当前平均分：<span id="avgRating">{% if movie.user_rating_avg %}{{ "%.1f"|format(movie.user_rating_avg) }}{% else
+                %}0.0{% endif %}</span>
+              (<span id="userRatingCount">{% if movie.user_rating_count %}{{ movie.user_rating_count }}{% else %}0{%
+                endif %}</span>人评分)
+            </small>
+          </div>
         </div>
         {% else %}
         <p>请<a href="{{ url_for('auth.login') }}">登录</a>后评分</p>
@@ -142,6 +162,8 @@ endblock %} {% block styles %} {{ super() }}
     const stars = document.querySelectorAll(".star");
     const movieId = document.getElementById("movieId").value;
     const messageDiv = document.getElementById("ratingMessage");
+    const avgRatingSpan = document.getElementById("avgRating");
+    const userRatingCountSpan = document.getElementById("userRatingCount");
 
     stars.forEach((star) => {
       star.addEventListener("mouseover", function () {
@@ -156,41 +178,74 @@ endblock %} {% block styles %} {{ super() }}
       });
 
       star.addEventListener("click", function () {
-        const rating = this.dataset.rating;
+        const rating = parseInt(this.dataset.rating);
         submitRating(movieId, rating);
       });
     });
 
-    document
-      .getElementById("ratingStars")
-      .addEventListener("mouseleave", function () {
-        stars.forEach((star) => {
+    document.getElementById("ratingStars").addEventListener("mouseleave", function () {
+      stars.forEach((star) => {
+        if (star.classList.contains("active")) {
           star.style.color = "#ffd700";
-        });
+        } else {
+          star.style.color = "#ddd";
+        }
       });
+    });
 
     function submitRating(movieId, rating) {
-      fetch("/movie/rate", {
+      // 确保评分是整数
+      const ratingValue = parseInt(rating);
+      console.log('Submitting rating:', { movieId, rating: ratingValue }); // 调试日志
+
+      fetch(`/movies/rate/${movieId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          movie_id: movieId,
-          rating: rating,
+          rating: ratingValue // 直接使用整数
         }),
       })
-        .then((response) => response.json())
+        .then((response) => {
+          console.log('Response status:', response.status); // 调试日志
+          return response.json();
+        })
         .then((data) => {
+          console.log('Response data:', data); // 调试日志
           if (data.success) {
-            messageDiv.textContent = "评分成功！";
+            messageDiv.textContent = data.message;
             messageDiv.style.color = "green";
+
+            // 更新星星显示
+            stars.forEach((star) => {
+              if (parseInt(star.dataset.rating) <= ratingValue) {
+                star.classList.add("active");
+                star.style.color = "#ffd700";
+              } else {
+                star.classList.remove("active");
+                star.style.color = "#ddd";
+              }
+            });
+
+            // 更新平均分显示
+            if (data.data && data.data.avg_rating) {
+              const systemRatingInfoDiv = document.getElementById('systemRatingInfo');
+              if (systemRatingInfoDiv) {
+                systemRatingInfoDiv.style.display = 'block'; // 确保在评分后显示
+              }
+              avgRatingSpan.textContent = data.data.avg_rating;
+              if (userRatingCountSpan) {
+                userRatingCountSpan.textContent = data.data.rating_count;
+              }
+            }
           } else {
             messageDiv.textContent = data.message || "评分失败，请稍后重试";
             messageDiv.style.color = "red";
           }
         })
         .catch((error) => {
+          console.error('Error:', error); // 调试日志
           messageDiv.textContent = "发生错误，请稍后重试";
           messageDiv.style.color = "red";
         });

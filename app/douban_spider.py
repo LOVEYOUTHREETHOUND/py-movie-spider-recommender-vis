@@ -610,7 +610,7 @@ class DoubanSpider:
                                 continue
 
                             # 创建新电影记录
-                            movie = Movie(
+                            new_movie = Movie(
                                 douban_id=movie_detail['douban_id'],
                                 title=movie_detail['title'],
                                 original_title=movie_detail.get('original_title'),
@@ -632,13 +632,13 @@ class DoubanSpider:
                             )
                             
                             # 关联电影类型
-                            movie.types.append(movie_type)
+                            new_movie.types.append(movie_type)
                             
                             # 保存到数据库
-                            db.session.add(movie)
+                            db.session.add(new_movie)
                             db.session.commit()
                             total_movies += 1
-                            logger.info(f"成功添加电影: {movie.title}")
+                            logger.info(f"成功添加电影: {new_movie.title}")
                             
                         except Exception as e:
                             logger.error(f"保存电影 {movie_data.get('title', 'Unknown')} 时出错: {str(e)}")
@@ -817,19 +817,20 @@ class DoubanSpider:
                         douban_id=movie_detail['douban_id'],
                         title=movie_detail['title'],
                         year=movie_detail['year'],
-                        director=movie_detail['director'],
-                        cast=movie_detail['cast'],
-                        genres=movie_detail['genres'],
-                        rating_avg=movie_detail['rating_avg'],
-                        rating_count=movie_detail['rating_count'],
-                        poster_url=movie_detail['poster_url'],
-                        poster_data=movie_detail['poster_data'],
-                        poster_mimetype=movie_detail['poster_mimetype'],
-                        summary=movie_detail['summary'],
-                        screenwriter=movie_detail['screenwriter'],
-                        region=movie_detail['region'],
-                        language=movie_detail['language'],
-                        duration=movie_detail['runtime']
+                        directors=movie_detail.get('directors', ''),
+                        writers=movie_detail.get('writers', ''),
+                        actors=movie_detail.get('actors', ''),
+                        countries=movie_detail.get('countries', ''),
+                        languages=movie_detail.get('languages', ''),
+                        release_date=movie_detail.get('release_date'),
+                        runtime=movie_detail.get('runtime'),
+                        rating=movie_detail.get('rating'),
+                        rating_count=movie_detail.get('rating_count'),
+                        summary=movie_detail.get('summary', ''),
+                        poster_url=movie_detail.get('poster_url'),
+                        poster_data=movie_detail.get('poster_data'),
+                        poster_mimetype=movie_detail.get('poster_mimetype'),
+                        tags=movie_detail.get('tags', '')
                     )
 
                     db.session.add(new_movie)
@@ -893,19 +894,20 @@ class DoubanSpider:
                                 douban_id=movie_detail['douban_id'],
                                 title=movie_detail['title'],
                                 year=movie_detail['year'],
-                                director=movie_detail['director'],
-                                cast=movie_detail['cast'],
-                                genres=movie_detail['genres'],
-                                rating_avg=movie_detail['rating_avg'],
-                                rating_count=movie_detail['rating_count'],
-                                poster_url=movie_detail['poster_url'],
-                                poster_data=movie_detail['poster_data'],
-                                poster_mimetype=movie_detail['poster_mimetype'],
-                                summary=movie_detail['summary'],
-                                screenwriter=movie_detail['screenwriter'],
-                                region=movie_detail['region'],
-                                language=movie_detail['language'],
-                                duration=movie_detail['runtime']
+                                directors=movie_detail.get('directors', ''),
+                                writers=movie_detail.get('writers', ''),
+                                actors=movie_detail.get('actors', ''),
+                                countries=movie_detail.get('countries', ''),
+                                languages=movie_detail.get('languages', ''),
+                                release_date=movie_detail.get('release_date'),
+                                runtime=movie_detail.get('runtime'),
+                                rating=movie_detail.get('rating'),
+                                rating_count=movie_detail.get('rating_count'),
+                                summary=movie_detail.get('summary', ''),
+                                poster_url=movie_detail.get('poster_url'),
+                                poster_data=movie_detail.get('poster_data'),
+                                poster_mimetype=movie_detail.get('poster_mimetype'),
+                                tags=movie_detail.get('tags', '')
                             )
                             
                             db.session.add(new_movie)
@@ -1088,17 +1090,17 @@ class DoubanSpider:
                 douban_id=movie_data['douban_id'],
                 title=movie_data['title'],
                 original_title=movie_data.get('original_title'),
-                directors=movie_data.get('directors'),
-                writers=movie_data.get('writers'),
-                actors=movie_data.get('actors'),
+                directors=movie_data.get('directors', ''),
+                writers=movie_data.get('writers', ''),
+                actors=movie_data.get('actors', ''),
                 year=movie_data.get('year'),
-                summary=movie_data.get('summary'),
+                summary=movie_data.get('summary', ''),
                 rating=movie_data.get('rating'),
                 rating_count=movie_data.get('rating_count'),
                 runtime=movie_data.get('runtime'),
                 release_date=movie_data.get('release_date'),
-                languages=movie_data.get('languages'),
-                countries=movie_data.get('countries'),
+                languages=movie_data.get('languages', ''),
+                countries=movie_data.get('countries', ''),
                 poster_url=movie_data.get('poster_url')
             )
 

@@ -1,155 +1,129 @@
 <!DOCTYPE html>
 <html lang="zh">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}电影推荐系统{% endblock %}</title>
-    <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <!-- Font Awesome -->
-    <link
-      href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    <!-- Custom CSS -->
-    <link
-      href="{{ url_for('static', filename='css/style.css') }}"
-      rel="stylesheet"
-    />
-    {% block styles %}{% endblock %}
-  </head>
-  <body>
-    <!-- 导航栏 -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div class="container">
-        <a class="navbar-brand" href="{{ url_for('index') }}">
-          <i class="fas fa-film me-2"></i>电影推荐
-        </a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav me-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('movie.movie_list') }}">
-                <i class="fas fa-list me-1"></i>电影列表
-              </a>
-            </li>
-            {% if current_user.is_authenticated %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('movie.recommendations') }}">
-                <i class="fas fa-thumbs-up me-1"></i>为您推荐
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('movie.data_analysis') }}">
-                <i class="fas fa-chart-bar me-1"></i>数据分析
-              </a>
-            </li>
-            {% endif %}
-          </ul>
-          <!-- 搜索框 -->
-          <form
-            class="d-flex me-3"
-            action="{{ url_for('movie.search') }}"
-            method="get"
-          >
-            <input
-              class="form-control me-2"
-              type="search"
-              name="q"
-              placeholder="搜索电影..."
-              required
-            />
-            <button class="btn btn-outline-light" type="submit">
-              <i class="fas fa-search"></i>
-            </button>
-          </form>
-          <!-- 用户菜单 -->
-          <ul class="navbar-nav">
-            {% if current_user.is_authenticated %}
-            <li class="nav-item dropdown">
-              <a
-                class="nav-link dropdown-toggle"
-                href="#"
-                id="navbarDropdown"
-                role="button"
-                data-bs-toggle="dropdown"
-              >
-                <i class="fas fa-user me-1"></i>{{ current_user.username }}
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                  <a
-                    class="dropdown-item"
-                    href="{{ url_for('movie.user_ratings') }}"
-                  >
-                    <i class="fas fa-star me-2"></i>我的评分
-                  </a>
-                </li>
-                <li><hr class="dropdown-divider" /></li>
-                <li>
-                  <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
-                    <i class="fas fa-sign-out-alt me-2"></i>退出
-                  </a>
-                </li>
-              </ul>
-            </li>
-            {% else %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('auth.login') }}">
-                <i class="fas fa-sign-in-alt me-1"></i>登录
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('auth.register') }}">
-                <i class="fas fa-user-plus me-1"></i>注册
-              </a>
-            </li>
-            {% endif %}
-          </ul>
-        </div>
-      </div>
-    </nav>
 
-    <!-- 消息提醒 -->
-    {% with messages = get_flashed_messages(with_categories=true) %} {% if
-    messages %} {% for category, message in messages %}
-    <div
-      class="alert alert-{{ category }} alert-dismissible fade show"
-      role="alert"
-    >
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}电影推荐系统{% endblock %}</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <!-- Custom CSS -->
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+  {% block styles %}{% endblock %}
+</head>
+
+<body>
+  <!-- 导航栏 -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="{{ url_for('index') }}">
+        <i class="fas fa-film me-2"></i>电影推荐
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('movie.movie_list') }}">
+              <i class="fas fa-list me-1"></i>电影列表
+            </a>
+          </li>
+          {% if current_user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('movie.recommendations') }}">
+              <i class="fas fa-thumbs-up me-1"></i>为您推荐
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('movie.user_ratings') }}">
+              <i class="fas fa-star me-2"></i>我的评分
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('movie.data_analysis') }}">
+              <i class="fas fa-chart-bar me-1"></i>数据分析
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+        <!-- 搜索框 -->
+        <form class="d-flex me-3" action="{{ url_for('movie.search') }}" method="get">
+          <input class="form-control me-2" type="search" name="q" placeholder="搜索电影..." required />
+          <button class="btn btn-outline-light" type="submit">
+            <i class="fas fa-search"></i>
+          </button>
+        </form>
+        <!-- 用户菜单 -->
+        <ul class="navbar-nav">
+          {% if current_user.is_authenticated %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+              <i class="fas fa-user me-1"></i>{{ current_user.username }}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <a class="dropdown-item" href="{{ url_for('movie.user_ratings') }}">
+                  <i class="fas fa-star me-2"></i>我的评分
+                </a>
+              </li>
+              <li>
+                <hr class="dropdown-divider" />
+              </li>
+              <li>
+                <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                  <i class="fas fa-sign-out-alt me-2"></i>退出
+                </a>
+              </li>
+            </ul>
+          </li>
+          {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('auth.login') }}">
+              <i class="fas fa-sign-in-alt me-1"></i>登录
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('auth.register') }}">
+              <i class="fas fa-user-plus me-1"></i>注册
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
     </div>
-    {% endfor %} {% endif %} {% endwith %}
+  </nav>
 
-    <!-- 主要内容 -->
-    <main class="container my-4">{% block content %}{% endblock %}</main>
+  <!-- 消息提醒 -->
+  {% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %} {% for category, message in messages %}
+  <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %} {% endif %} {% endwith %}
 
-    <!-- 页脚 -->
-    <footer class="footer mt-auto py-3 bg-light">
-      <div class="container text-center">
-        <span class="text-muted">© 2025 电影推荐系统</span>
-      </div>
-    </footer>
+  <!-- 主要内容 -->
+  <main class="container my-4">{% block content %}{% endblock %}</main>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
-    <!-- jQuery -->
-    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <!-- Plotly -->
-    <script src="https://cdn.bootcdn.net/ajax/libs/plotly.js/2.12.1/plotly.min.js"></script>
-    <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% block scripts %}{% endblock %}
-  </body>
+  <!-- 页脚 -->
+  <footer class="footer mt-auto py-3 bg-light">
+    <div class="container text-center">
+      <span class="text-muted">© 2025 电影推荐系统</span>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+  <!-- jQuery -->
+  <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <!-- Plotly -->
+  <script src="https://cdn.bootcdn.net/ajax/libs/plotly.js/2.12.1/plotly.min.js"></script>
+  <!-- Custom JS -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+
 </html>

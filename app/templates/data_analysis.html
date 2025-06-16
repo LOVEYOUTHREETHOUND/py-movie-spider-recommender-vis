@@ -10,10 +10,7 @@
           <h4>演员与导演合作关系网络</h4>
         </div>
         <div class="card-body">
-          <div
-            id="relationship-network"
-            style="width: 100%; height: 600px"
-          ></div>
+          <div id="relationship-network" style="width: 100%; height: 600px"></div>
         </div>
       </div>
     </div>
@@ -109,9 +106,8 @@
           position: "top",
           formatter: function (params) {
             const movie = data.movies[params.dataIndex];
-            return `电影: ${movie[2]}<br/>年份: ${
-              data.years[movie[0]]
-            }<br/>类型: ${data.types[movie[1]]}<br/>评分: ${movie[3]}`;
+            return `电影: ${movie[2]}<br/>年份: ${data.years[movie[0]]
+              }<br/>类型: ${data.types[movie[1]]}<br/>评分: ${movie[3]}`;
           },
         },
         grid: {
@@ -120,11 +116,11 @@
         },
         xAxis: {
           type: "category",
-          data: data.years,
+          data: [1, 2, 3, 4, 5],
           splitArea: {
             show: true,
           },
-          name: "年份",
+          name: "评分",
           nameLocation: "middle",
           nameGap: 30,
         },

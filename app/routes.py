@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 import io
+from flask import current_app
 
 # 创建蓝图
 movie_bp = Blueprint('movie', __name__)
@@ -175,29 +176,80 @@ def user_ratings():
 @movie_bp.route('/rate/<int:movie_id>', methods=['POST'])
 @login_required
 def rate_movie(movie_id):
-    """为电影评分"""
-    rating_value = request.form.get('rating', type=float)
-    if not rating_value or rating_value < 0 or rating_value > 5:
-        return jsonify({'error': '无效的评分值'}), 400
-    
-    movie = Movie.query.get_or_404(movie_id)
-    rating = Rating.query.filter_by(
-        user_id=current_user.id,
-        movie_id=movie_id
-    ).first()
-    
-    if rating:
-        rating.rating = rating_value
-    else:
-        rating = Rating(
-            user_id=current_user.id,
-            movie_id=movie_id,
-            rating=rating_value
-        )
-        db.session.add(rating)
-    
-    db.session.commit()
-    return jsonify({'message': '评分成功'})
+    """用户对电影进行评分"""
+    try:
+        data = request.get_json()
+        current_app.logger.info(f"Received rating request data: {data}")
+        
+        if not data or 'rating' not in data:
+            return jsonify({
+                "success": False,
+                "message": "请提供评分",
+                "data": None
+            }), 400
+
+        # 获取评分值并确保是整数
+        try:
+            rating = int(data['rating'])
+        except (ValueError, TypeError):
+            return jsonify({
+                "success": False,
+                "message": "无效的评分值",
+                "data": None
+            }), 400
+
+        # 验证评分范围
+        if not 1 <= rating <= 5:
+            return jsonify({
+                "success": False,
+                "message": "评分必须在1-5之间",
+                "data": None
+            }), 400
+
+        # 获取电影信息
+        movie = Movie.query.get_or_404(movie_id)
+        
+        # 检查是否已经评分
+        existing_rating = Rating.query.filter_by(
+            user_id=current_user.id, movie_id=movie_id
+        ).first()
+
+        if existing_rating:
+            # 更新评分
+            existing_rating.rating = rating
+            existing_rating.updated_at = datetime.utcnow()
+        else:
+            # 创建新评分
+            new_rating = Rating(
+                user_id=current_user.id,
+                movie_id=movie_id,
+                rating=rating
+            )
+            db.session.add(new_rating)
+        
+        db.session.commit()
+
+        # 计算新的平均分
+        avg_rating = db.session.query(func.avg(Rating.rating)).filter_by(movie_id=movie_id).scalar() or 0
+        rating_count = db.session.query(func.count(Rating.id)).filter_by(movie_id=movie_id).scalar() or 0
+
+        return jsonify({
+            "success": True,
+            "message": "评分成功",
+            "data": {
+                "avg_rating": round(float(avg_rating), 1),
+                "rating_count": rating_count
+            }
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error in rate_movie: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "message": "评分失败，请稍后重试",
+            "data": None
+        }), 500
 
 @movie_bp.route('/visualizations')
 @login_required
@@ -339,83 +391,6 @@ def rating_correlation():
     visualizer = MovieVisualizer(db)
     return jsonify(visualizer.get_rating_correlation())
 
-@movie_bp.route('/api/visualizations/relationship-network')
-@login_required
-def relationship_network():
-    """获取演员与导演的合作关系网络数据"""
-    try:
-        # 获取所有电影的导演和演员数据
-        movies = Movie.query.with_entities(Movie.directors, Movie.actors).all()
-        
-        nodes = []
-        links = []
-        director_dict = {}  # 用于存储导演节点索引
-        actor_dict = {}    # 用于存储演员节点索引
-        node_index = 0
-        
-        for movie in movies:
-            if not movie.directors or not movie.actors:
-                continue
-                
-            # 处理导演
-            directors = [d.strip() for d in movie.directors.split(',') if d.strip()]
-            for director in directors:
-                if director not in director_dict:
-                    director_dict[director] = node_index
-                    nodes.append({
-                        'name': director,
-                        'value': 1,
-                        'category': 0,  # 0表示导演
-                        'symbolSize': 50,  # 节点大小
-                        'itemStyle': {'color': '#ff7f50'}  # 导演节点颜色
-                    })
-                    node_index += 1
-                else:
-                    # 增加导演的作品数
-                    nodes[director_dict[director]]['value'] += 1
-                    nodes[director_dict[director]]['symbolSize'] = min(50 + nodes[director_dict[director]]['value'] * 5, 100)
-            
-            # 处理演员
-            actors = [a.strip() for a in movie.actors.split(',') if a.strip()]
-            for actor in actors:
-                if actor not in actor_dict:
-                    actor_dict[actor] = node_index
-                    nodes.append({
-                        'name': actor,
-                        'value': 1,
-                        'category': 1,  # 1表示演员
-                        'symbolSize': 30,  # 节点大小
-                        'itemStyle': {'color': '#6495ed'}  # 演员节点颜色
-                    })
-                    node_index += 1
-                else:
-                    # 增加演员的作品数
-                    nodes[actor_dict[actor]]['value'] += 1
-                    nodes[actor_dict[actor]]['symbolSize'] = min(30 + nodes[actor_dict[actor]]['value'] * 3, 60)
-                
-                # 创建导演和演员之间的连接
-                for director in directors:
-                    links.append({
-                        'source': director_dict[director],
-                        'target': actor_dict[actor],
-                        'value': 1,
-                        'lineStyle': {
-                            'width': 1,
-                            'curveness': 0.3
-                        }
-                    })
-        
-        return jsonify({
-            'nodes': nodes,
-            'links': links,
-            'categories': [
-                {'name': '导演', 'itemStyle': {'color': '#ff7f50'}},
-                {'name': '演员', 'itemStyle': {'color': '#6495ed'}}
-            ]
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @movie_bp.route('/api/visualizations/rating-heatmap')
 @login_required
 def rating_heatmap():
@@ -428,37 +403,82 @@ def rating_heatmap():
             Movie.rating,
             MovieType.name.label('type_name')
         ).join(
-            movie_types,
-            Movie.id == movie_types.c.movie_id
-        ).join(
-            MovieType,
-            movie_types.c.type_id == MovieType.id
+            Movie.types
         ).filter(
             Movie.rating.isnot(None),
-            Movie.year.isnot(None)
+            Movie.year.isnot(None),
+            Movie.rating >= 0,
+            Movie.rating <= 10
+        ).order_by(
+            Movie.year.asc(),
+            MovieType.name.asc()
         ).all()
 
         # 获取年份范围和类型列表
         years = sorted(list(set(movie.year for movie in movies if movie.year)))
         types = sorted(list(set(movie.type_name for movie in movies if movie.type_name)))
 
+        # 创建年份分组（每4年一组）
+        year_groups = []
+        current_group = []
+        for year in years:
+            current_group.append(year)
+            if len(current_group) == 4:
+                year_groups.append(current_group)
+                current_group = []
+        if current_group:  # 处理剩余的年份
+            year_groups.append(current_group)
+
         # 创建评分矩阵
         heatmap_data = []
-        for movie in movies:
-            if movie.year and movie.type_name and movie.rating:
-                year_index = years.index(movie.year)
-                type_index = types.index(movie.type_name)
-                heatmap_data.append([
-                    year_index,
-                    type_index,
-                    movie.title,
-                    float(movie.rating)
-                ])
+        movie_details = {}  # 存储每个单元格的电影详情
+
+        for type_name in types:
+            type_index = types.index(type_name)
+            for group_index, year_group in enumerate(year_groups):
+                # 获取该年份组和类型的所有电影
+                group_movies = [
+                    movie for movie in movies 
+                    if movie.year in year_group and movie.type_name == type_name
+                ]
+                
+                if group_movies:
+                    # 计算平均评分
+                    avg_rating = sum(movie.rating for movie in group_movies) / len(group_movies)
+                    
+                    # 存储该单元格的电影详情
+                    cell_key = f"{group_index}_{type_index}"
+                    movie_details[cell_key] = {
+                        'years': year_group,
+                        'avg_rating': round(avg_rating, 1),
+                        'movies': [
+                            {
+                                'title': movie.title,
+                                'year': movie.year,
+                                'rating': round(float(movie.rating), 1)
+                            }
+                            for movie in group_movies
+                        ]
+                    }
+                    
+                    heatmap_data.append([
+                        group_index,
+                        type_index,
+                        avg_rating
+                    ])
+
+        # 创建年份标签（显示年份范围）
+        year_labels = [
+            f"{group[0]}-{group[-1]}"
+            for group in year_groups
+        ]
 
         return jsonify({
-            'years': years,
+            'years': year_labels,
             'types': types,
-            'movies': heatmap_data
+            'movies': heatmap_data,
+            'details': movie_details
         })
     except Exception as e:
+        current_app.logger.error(f"Error in rating_heatmap: {str(e)}")
         return jsonify({'error': str(e)}), 500 
