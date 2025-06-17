@@ -1,11 +1,32 @@
-{% extends "base.html" %} {% block title %}个性化推荐{% endblock %} {% block
-content %}
+{% extends "base.html" %} {% block title %}相似电影 - {{ current_movie.title
+}}{% endblock %} {% block content %}
 <div class="container">
-  <h1 class="my-4">为你推荐</h1>
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <img
+        src="{{ url_for('movie.get_poster', movie_id=current_movie.id) }}"
+        class="img-fluid rounded"
+        alt="{{ current_movie.title }}"
+      />
+    </div>
+    <div class="col-md-9">
+      <h1>{{ current_movie.title }}</h1>
+      <p class="text-muted">
+        {{ current_movie.year }} | {{ current_movie.genres }}
+      </p>
+      <div class="rating mb-3">
+        <i class="fas fa-star text-warning"></i>
+        <span class="h4">{{ "%.1f"|format(current_movie.rating) }}</span>
+      </div>
+      <p>{{ current_movie.description }}</p>
+    </div>
+  </div>
 
-  {% if recommendations %}
+  <h2 class="mb-4">相似电影推荐</h2>
+
+  {% if similar_movies %}
   <div class="row row-cols-1 row-cols-md-4 g-4">
-    {% for movie in recommendations %}
+    {% for movie in similar_movies %}
     <div class="col">
       <div class="card h-100">
         <img
@@ -28,12 +49,11 @@ content %}
               <i class="fas fa-star text-warning"></i>
               <span>{{ "%.1f"|format(movie.rating) }}</span>
             </div>
-          </div>
-          <div class="similarity-score mt-2">
-            <small class="text-info"
-              >推荐理由：与您收藏的电影相似度 {{
-              "%.2f"|format(movie.similarity_score) }}</small
-            >
+            <div class="similarity-score">
+              <small class="text-muted"
+                >相似度: {{ "%.2f"|format(movie.similarity_score) }}</small
+              >
+            </div>
           </div>
         </div>
         <div class="card-footer">
@@ -58,7 +78,7 @@ content %}
   </div>
   {% else %}
   <div class="alert alert-info">
-    <i class="fas fa-info-circle"></i> 暂无推荐，请先收藏一些电影。
+    <i class="fas fa-info-circle"></i> 暂无相似电影推荐。
   </div>
   {% endif %}
 </div>

@@ -60,85 +60,130 @@ endblock %} {% block styles %} {{ super() }}
   }
 </style>
 {% endblock %} {% block content %}
-<div class="movie-detail">
-  <div class="movie-header">
-    <div class="movie-poster">
-      {% if movie.poster_data %}
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-md-4">
       <img
-        src="data:{{ movie.poster_mimetype }};base64,{{ movie.poster_data|b64encode }}"
+        src="{{ url_for('movie.movie_poster', movie_id=movie.id) }}"
+        class="img-fluid rounded"
         alt="{{ movie.title }}"
       />
-      {% else %}
-      <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" />
-      {% endif %}
     </div>
-    <div class="movie-info">
-      <h1 class="movie-title">{{ movie.title }}</h1>
-      {% if movie.original_title and movie.original_title != movie.title %}
-      <p class="movie-meta">原名：{{ movie.original_title }}</p>
-      {% endif %}
+    <div class="col-md-8">
+      <h1 class="mb-3">{{ movie.title }}</h1>
 
-      <div class="movie-meta">
-        {% if movie.release_date %}
-        <p>上映日期：{{ movie.release_date }}</p>
-        {% endif %} {% if movie.runtime %}
-        <p>片长：{{ movie.runtime }} 分钟</p>
-        {% endif %} {% if movie.countries %}
-        <p>制片国家/地区：{{ movie.countries }}</p>
-        {% endif %} {% if movie.languages %}
-        <p>语言：{{ movie.languages }}</p>
-        {% endif %} {% if movie.types %}
-        <p>类型：{{ movie.types|map(attribute='name')|join('、') }}</p>
-        {% endif %} {% if movie.rating %}
-        <p>
-          豆瓣评分：{{ "%.1f"|format(movie.rating) }} ({{ movie.rating_count
-          }}人评分)
-        </p>
+      <div class="movie-info">
+        {% if movie.original_title and movie.original_title != movie.title %}
+        <p class="text-muted">原名：{{ movie.original_title }}</p>
         {% endif %}
-      </div>
 
-      {% if movie.directors %}
-      <p class="movie-meta">导演：{{ movie.directors }}</p>
-      {% endif %} {% if movie.writers %}
-      <p class="movie-meta">编剧：{{ movie.writers }}</p>
-      {% endif %} {% if movie.actors %}
-      <p class="movie-meta">主演：{{ movie.actors }}</p>
-      {% endif %}
-
-      <div class="rating-section">
-        <h3>用户评分</h3>
-        {% if current_user.is_authenticated %}
-        <div class="rating-form">
-          <div class="rating-stars" id="ratingStars">
-            {% for i in range(5) %}
-            <span class="star" data-rating="{{ i + 1 }}">★</span>
-            {% endfor %}
-          </div>
-          <input type="hidden" id="movieId" value="{{ movie.id }}" />
-          <div id="ratingMessage"></div>
+        <div class="mb-3">
+          {% if movie.year %}
+          <span class="badge bg-secondary me-2">{{ movie.year }}</span>
+          {% endif %} {% if movie.runtime %}
+          <span class="badge bg-secondary me-2">{{ movie.runtime }}分钟</span>
+          {% endif %} {% for type in movie.types %}
+          <span class="badge bg-primary me-2">{{ type.name }}</span>
+          {% endfor %}
         </div>
-        {% else %}
-        <p>请<a href="{{ url_for('auth.login') }}">登录</a>后评分</p>
+
+        <div class="mb-3">
+          {% if movie.rating %}
+          <p class="mb-2">
+            <i class="fas fa-star text-warning"></i>
+            <span class="ms-1">{{ "%.1f"|format(movie.rating) }}</span>
+            <small class="text-muted">({{ movie.rating_count }}人评分)</small>
+          </p>
+          {% endif %}
+        </div>
+
+        <div class="d-flex gap-3 mb-4">
+          {% if current_user.is_authenticated %}
+          <button
+            id="favoriteBtn"
+            class="btn {% if is_favorite %}btn-danger{% else %}btn-outline-danger{% endif %}"
+            data-movie-id="{{ movie.id }}"
+          >
+            <i class="fas fa-heart me-1"></i>
+            <span id="favoriteText"
+              >{% if is_favorite %}已收藏{% else %}收藏{% endif %}</span
+            >
+          </button>
+          {% endif %}
+        </div>
+
+        {% if movie.directors %}
+        <p><strong>导演：</strong>{{ movie.directors }}</p>
+        {% endif %} {% if movie.writers %}
+        <p><strong>编剧：</strong>{{ movie.writers }}</p>
+        {% endif %} {% if movie.actors %}
+        <p><strong>主演：</strong>{{ movie.actors }}</p>
+        {% endif %} {% if movie.countries %}
+        <p><strong>制片国家/地区：</strong>{{ movie.countries }}</p>
+        {% endif %} {% if movie.languages %}
+        <p><strong>语言：</strong>{{ movie.languages }}</p>
+        {% endif %} {% if movie.summary %}
+        <div class="mt-4">
+          <h5>剧情简介</h5>
+          <p class="text-muted">{{ movie.summary }}</p>
+        </div>
         {% endif %}
+
+        <div class="rating-section mt-4">
+          <h5>用户评分</h5>
+          {% if current_user.is_authenticated %}
+          <div class="rating-form">
+            <div class="rating-stars" id="ratingStars">
+              {% for i in range(5) %}
+              <span class="star" data-rating="{{ i + 1 }}">★</span>
+              {% endfor %}
+            </div>
+            <input type="hidden" id="movieId" value="{{ movie.id }}" />
+            <div id="ratingMessage"></div>
+          </div>
+          {% else %}
+          <p>请<a href="{{ url_for('auth.login') }}">登录</a>后评分</p>
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>
-
-  {% if movie.summary %}
-  <div class="movie-summary">
-    <h3 class="section-title">剧情简介</h3>
-    <p>{{ movie.summary }}</p>
-  </div>
-  {% endif %} {% if movie.tags %}
-  <div class="movie-tags">
-    <h3 class="section-title">标签</h3>
-    <p>{{ movie.tags }}</p>
-  </div>
-  {% endif %}
 </div>
 {% endblock %} {% block scripts %} {{ super() }}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // 收藏功能
+    const favoriteBtn = document.getElementById("favoriteBtn");
+    if (favoriteBtn) {
+      favoriteBtn.addEventListener("click", function () {
+        const movieId = this.dataset.movieId;
+        fetch(`/movies/favorite/${movieId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              // 更新按钮状态
+              this.classList.toggle("btn-danger", data.is_favorite);
+              this.classList.toggle("btn-outline-danger", !data.is_favorite);
+              document.getElementById("favoriteText").textContent =
+                data.is_favorite ? "已收藏" : "收藏";
+
+              // 显示提示消息
+              alert(data.message);
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("操作失败，请稍后重试");
+          });
+      });
+    }
+
+    // 评分功能代码保持不变
     const stars = document.querySelectorAll(".star");
     const movieId = document.getElementById("movieId").value;
     const messageDiv = document.getElementById("ratingMessage");
@@ -155,9 +200,33 @@ endblock %} {% block styles %} {{ super() }}
         });
       });
 
-      star.addEventListener("click", function () {
+      star.addEventListener("click", async function () {
         const rating = this.dataset.rating;
-        submitRating(movieId, rating);
+        try {
+          const response = await fetch("/movies/rate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              movie_id: movieId,
+              rating: rating,
+            }),
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            messageDiv.textContent = "评分成功！";
+            messageDiv.style.color = "green";
+          } else {
+            messageDiv.textContent = data.message || "评分失败，请稍后重试";
+            messageDiv.style.color = "red";
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          messageDiv.textContent = "发生错误，请稍后重试";
+          messageDiv.style.color = "red";
+        }
       });
     });
 
@@ -168,33 +237,26 @@ endblock %} {% block styles %} {{ super() }}
           star.style.color = "#ffd700";
         });
       });
-
-    function submitRating(movieId, rating) {
-      fetch("/movie/rate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          movie_id: movieId,
-          rating: rating,
-        }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            messageDiv.textContent = "评分成功！";
-            messageDiv.style.color = "green";
-          } else {
-            messageDiv.textContent = data.message || "评分失败，请稍后重试";
-            messageDiv.style.color = "red";
-          }
-        })
-        .catch((error) => {
-          messageDiv.textContent = "发生错误，请稍后重试";
-          messageDiv.style.color = "red";
-        });
-    }
   });
 </script>
+
+<style>
+  .star {
+    font-size: 24px;
+    color: #ffd700;
+    cursor: pointer;
+    margin-right: 5px;
+  }
+
+  .rating-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+  }
+
+  #ratingMessage {
+    margin-top: 10px;
+    font-weight: bold;
+  }
+</style>
 {% endblock %}

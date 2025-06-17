@@ -333,12 +333,16 @@ styles %} {{ super() }}
               dayCell.textContent = day;
               row.appendChild(dayCell);
 
-              matrix[i].forEach(count => {
+              matrix[i].forEach((count, j) => {
                   const cell = document.createElement('td');
                   cell.className = 'activity-cell';
                   const intensity = Math.min(count / 10, 1); // 假设最大值为10
                   cell.style.backgroundColor = `rgba(54, 162, 235, ${intensity})`;
                   cell.textContent = count;
+
+                  // 添加鼠标悬停提示
+                  cell.title = `${days[i]} ${hours[j]}\n活动次数: ${count}`;
+
                   row.appendChild(cell);
               });
               tbody.appendChild(row);

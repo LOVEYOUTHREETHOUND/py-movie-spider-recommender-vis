@@ -1,0 +1,115 @@
+{% extends "base.html" %} {% block title %}我的收藏 - {{ super() }}{% endblock
+%} {% block content %}
+<div class="container mt-4">
+  <h1 class="mb-4">我的收藏</h1>
+
+  {% if favorites.items %}
+  <div class="row row-cols-1 row-cols-md-4 g-4">
+    {% for favorite in favorites.items %}
+    <div class="col">
+      <div class="card h-100">
+        <img
+          src="{{ url_for('movie.movie_poster', movie_id=favorite.movie.id) }}"
+          class="card-img-top"
+          alt="{{ favorite.movie.title }}"
+        />
+        <div class="card-body">
+          <h5 class="card-title">{{ favorite.movie.title }}</h5>
+          <p class="card-text">
+            <small class="text-muted">
+              <i class="fas fa-calendar-alt me-1"></i>{{ favorite.movie.year or
+              '未知' }}
+            </small>
+            <br />
+            {% if favorite.movie.rating %}
+            <small class="text-warning">
+              <i class="fas fa-star me-1"></i>{{
+              "%.1f"|format(favorite.movie.rating) }}
+            </small>
+            {% endif %}
+          </p>
+          <div class="d-flex justify-content-between align-items-center">
+            <a
+              href="{{ url_for('movie.movie_detail', movie_id=favorite.movie.id) }}"
+              class="btn btn-sm btn-outline-primary"
+              >查看详情</a
+            >
+            <button
+              class="btn btn-sm btn-outline-danger favorite-btn"
+              data-movie-id="{{ favorite.movie.id }}"
+              title="取消收藏"
+            >
+              <i class="fas fa-heart"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- 分页 -->
+  {% if favorites.pages > 1 %}
+  <nav class="mt-4">
+    <ul class="pagination justify-content-center">
+      {% for page in favorites.iter_pages() %} {% if page %}
+      <li class="page-item {% if page == favorites.page %}active{% endif %}">
+        <a class="page-link" href="{{ url_for('movie.favorites', page=page) }}"
+          >{{ page }}</a
+        >
+      </li>
+      {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">...</span>
+      </li>
+      {% endif %} {% endfor %}
+    </ul>
+  </nav>
+  {% endif %} {% else %}
+  <div class="alert alert-info">
+    <h4 class="alert-heading">暂无收藏电影</h4>
+    <p>您还没有收藏任何电影，快去发现喜欢的电影吧！</p>
+    <hr />
+    <p class="mb-0">
+      <a href="{{ url_for('movie.movie_list') }}" class="alert-link">
+        去浏览电影 <i class="fas fa-arrow-right"></i>
+      </a>
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // 处理收藏按钮点击
+    document.querySelectorAll(".favorite-btn").forEach((button) => {
+      button.addEventListener("click", async function () {
+        const movieId = this.dataset.movieId;
+        try {
+          const response = await fetch(`/movies/favorite/${movieId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              // 移除卡片
+              this.closest(".col").remove();
+              // 如果没有更多收藏，刷新页面显示空状态
+              if (document.querySelectorAll(".col").length === 0) {
+                window.location.reload();
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("操作失败，请稍后重试");
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}
