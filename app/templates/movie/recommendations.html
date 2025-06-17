@@ -1,27 +1,45 @@
-{% extends "base.html" %} {% block title %}为您推荐 - {{ super() }}{% endblock
-%} {% block content %}
-<div class="container mt-4">
-  <h1 class="mb-4">为您推荐</h1>
+{% extends "base.html" %}
+{% block title %}个性化推荐{% endblock %}
 
-  {% if movies %}
+{% block content %}
+<div class="container">
+  <h1 class="my-4">为你推荐</h1>
+
+  {% if recommendations %}
   <div class="row row-cols-1 row-cols-md-4 g-4">
-    {% for movie in movies %}
+    {% for movie in recommendations %}
     <div class="col">
       <div class="card h-100">
-        <img src="{{ url_for('movie.movie_poster', movie_id=movie.id) }}" class="card-img-top"
-          alt="{{ movie.title }}" />
+        <img src="{{ url_for('movie.get_poster', movie_id=movie.id) }}" class="card-img-top" alt="{{ movie.title }}"
+          style="height: 300px; object-fit: cover" />
         <div class="card-body">
           <h5 class="card-title">{{ movie.title }}</h5>
           <p class="card-text">
-            <small class="text-muted">评分: {{ "%.1f"|format(movie.rating) }}</small>
+            <small class="text-muted">{{ movie.year }}</small>
+            {% if movie.genres %}
+            <br />
+            <small class="text-muted">{{ movie.genres }}</small>
+            {% endif %}
           </p>
           <div class="d-flex justify-content-between align-items-center">
-            <a href="{{ url_for('movie.movie_detail', movie_id=movie.id) }}" class="btn btn-primary">查看详情</a>
-            <div class="rating-stars" data-movie-id="{{ movie.id }}">
-              {% for i in range(5) %}
-              <i class="fas fa-star text-muted" data-rating="{{ i + 1 }}"></i>
-              {% endfor %}
+            <div class="rating">
+              <i class="fas fa-star text-warning"></i>
+              <span>{{ "%.1f"|format(movie.rating) }}</span>
             </div>
+          </div>
+          <div class="similarity-score mt-2">
+            <small class="text-info">推荐理由：与您收藏的电影相似度 {{
+              "%.2f"|format(movie.similarity_score) }}</small>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="btn-group w-100">
+            <a href="{{ url_for('movie.movie_detail', movie_id=movie.id) }}" class="btn btn-outline-primary">
+              <i class="fas fa-info-circle"></i> 详情
+            </a>
+            <a href="{{ url_for('movie.similar_movies', movie_id=movie.id) }}" class="btn btn-outline-secondary">
+              <i class="fas fa-film"></i> 相似电影
+            </a>
           </div>
         </div>
       </div>
@@ -30,17 +48,11 @@
   </div>
   {% else %}
   <div class="alert alert-info">
-    <h4 class="alert-heading">暂无推荐电影</h4>
-    <p>请先对一些电影进行评分，我们将根据您的喜好为您推荐更多精彩内容。</p>
-    <hr />
-    <p class="mb-0">
-      <a href="{{ url_for('movie.movie_list') }}" class="alert-link">
-        去浏览电影 <i class="fas fa-arrow-right"></i>
-      </a>
-    </p>
+    <i class="fas fa-info-circle"></i> 暂无推荐，请先收藏一些电影。
   </div>
   {% endif %}
 </div>
+{% endblock %}
 
 {% block scripts %}
 <script>
@@ -94,4 +106,4 @@
     });
   });
 </script>
-{% endblock %} {% endblock %}
+{% endblock %}

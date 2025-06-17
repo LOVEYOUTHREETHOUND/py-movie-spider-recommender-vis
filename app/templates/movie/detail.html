@@ -143,6 +143,15 @@ endblock %} {% block styles %} {{ super() }}
       </div>
     </div>
   </div>
+  <div class="d-flex gap-3 mb-4">
+    {% if current_user.is_authenticated %}
+    <button id="favoriteBtn" class="btn {% if is_favorite %}btn-danger{% else %}btn-outline-danger{% endif %}"
+      data-movie-id="{{ movie.id }}">
+      <i class="fas fa-heart me-1"></i>
+      <span id="favoriteText">{% if is_favorite %}已收藏{% else %}收藏{% endif %}</span>
+    </button>
+    {% endif %}
+  </div>
 
   {% if movie.summary %}
   <div class="movie-summary">

@@ -1,0 +1,153 @@
+{% extends "base.html" %} {% block title %}{{ title }} - {{ super() }}{%
+endblock %} {% block content %}
+<div class="container mt-4">
+  <h1 class="mb-4">{{ title }}</h1>
+
+  {% if movies %}
+  <div class="row row-cols-1 row-cols-md-5 g-4">
+    {% for movie in movies %}
+    <div class="col">
+      <div class="card h-100">
+        <img
+          src="{{ url_for('movie.movie_poster', movie_id=movie.id) }}"
+          class="card-img-top"
+          alt="{{ movie.title }}"
+          style="height: 300px; object-fit: cover"
+          onerror="this.src='https://via.placeholder.com/300x450.png?text=No+Poster'"
+        />
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title text-truncate" style="height: 1.5rem">
+            {{ movie.title }}
+          </h5>
+          <div class="movie-info flex-grow-1">
+            <p class="card-text mb-2">
+              <small class="text-muted d-block">
+                <i class="fas fa-calendar-alt me-1"></i>{{ movie.year or '未知'
+                }}
+              </small>
+              <small class="text-warning d-block">
+                <i class="fas fa-star me-1"></i>{{ "%.1f"|format(movie.rating)
+                }}
+              </small>
+              <small class="text-muted d-block text-truncate">
+                <i class="fas fa-film me-1"></i>{{ movie['types']|join('、') }}
+              </small>
+            </p>
+            <div class="similarity-info mb-3">
+              <div
+                class="progress"
+                style="height: 4px"
+                data-bs-toggle="popover"
+                data-bs-placement="top"
+                data-bs-html="true"
+                data-bs-title="相似度详情"
+                data-bs-content="
+                  <div class='similarity-details'>
+                    <div><strong>类型相似度:</strong> {{ movie.similarity_details.type }}%</div>
+                    <div><strong>年份相似度:</strong> {{ movie.similarity_details.year }}%</div>
+                    <div><strong>评分相似度:</strong> {{ movie.similarity_details.rating }}%</div>
+                    <div><strong>时长相似度:</strong> {{ movie.similarity_details.duration }}%</div>
+                    <div><strong>语言相似度:</strong> {{ movie.similarity_details.language }}%</div>
+                  </div>
+                "
+              >
+                <div
+                  class="progress-bar bg-success"
+                  role="progressbar"
+                  style="width: {{ movie.similarity_score }}%;"
+                  aria-valuenow="{{ movie.similarity_score }}"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+              <small class="text-success mt-1 d-block">
+                <i class="fas fa-chart-line me-1"></i>相似度: {{
+                movie.similarity_score }}%
+              </small>
+              <small class="text-muted d-block text-truncate">
+                <i class="fas fa-info-circle me-1"></i>与《{{
+                movie.similar_movie }}》相似
+              </small>
+            </div>
+          </div>
+          <div class="card-actions mt-auto">
+            <div class="d-flex justify-content-between gap-2">
+              <a
+                href="{{ url_for('movie.movie_detail', movie_id=movie.id) }}"
+                class="btn btn-sm btn-outline-primary flex-grow-1"
+                >查看详情</a
+              >
+              <button
+                class="btn btn-sm {% if movie.id in favorite_movie_ids %}btn-danger{% else %}btn-outline-danger{% endif %} favorite-btn"
+                data-movie-id="{{ movie.id }}"
+                title="{% if movie.id in favorite_movie_ids %}取消收藏{% else %}收藏{% endif %}"
+              >
+                <i class="fas fa-heart"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    <h4 class="alert-heading">暂无推荐</h4>
+    <p>您还没有收藏任何电影，或者收藏的电影类型较少，无法生成推荐。</p>
+    <hr />
+    <p class="mb-0">
+      <a href="{{ url_for('movie.movie_list') }}" class="alert-link">
+        去浏览电影 <i class="fas fa-arrow-right"></i>
+      </a>
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %} {% block scripts %} {{ super() }}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // 处理收藏按钮点击
+    document.querySelectorAll(".favorite-btn").forEach((button) => {
+      button.addEventListener("click", async function () {
+        const movieId = this.dataset.movieId;
+        try {
+          const response = await fetch(`/movies/favorite/${movieId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              // 更新按钮状态
+              this.classList.toggle("btn-danger", data.is_favorite);
+              this.classList.toggle("btn-outline-danger", !data.is_favorite);
+              this.title = data.is_favorite ? "取消收藏" : "收藏";
+
+              // 显示提示消息
+              alert(data.message);
+            }
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("操作失败，请稍后重试");
+        }
+      });
+    });
+
+    // 初始化所有的 popovers
+    const popoverTriggerList = document.querySelectorAll(
+      '[data-bs-toggle="popover"]'
+    );
+    const popoverList = [...popoverTriggerList].map((popoverTriggerEl) => {
+      return new bootstrap.Popover(popoverTriggerEl, {
+        trigger: "hover", // 鼠标悬停时显示
+        container: "body",
+      });
+    });
+  });
+</script>
+{% endblock %}

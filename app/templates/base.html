@@ -33,8 +33,13 @@
           </li>
           {% if current_user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('movie.recommendations') }}">
-              <i class="fas fa-thumbs-up me-1"></i>为您推荐
+            <a class="nav-link" href="{{ url_for('movie.favorites') }}">
+              <i class="fas fa-heart me-1"></i>我的收藏
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('movie.favorite_type_recommendations') }}">
+              <i class="fas fa-thumbs-up me-1"></i>猜你喜欢
             </a>
           </li>
           <li class="nav-item">
@@ -50,7 +55,7 @@
           {% endif %}
         </ul>
         <!-- 搜索框 -->
-        <form class="d-flex me-3" action="{{ url_for('movie.search') }}" method="get">
+        <form class="d-flex me-3" action="{{ url_for('movie.search_movies') }}" method="get">
           <input class="form-control me-2" type="search" name="q" placeholder="搜索电影..." required />
           <button class="btn btn-outline-light" type="submit">
             <i class="fas fa-search"></i>
@@ -67,6 +72,11 @@
               <li>
                 <a class="dropdown-item" href="{{ url_for('movie.user_ratings') }}">
                   <i class="fas fa-star me-2"></i>我的评分
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{{ url_for('movie.favorites') }}">
+                  <i class="fas fa-heart me-2"></i>我的收藏
                 </a>
               </li>
               <li>
@@ -95,6 +105,7 @@
       </div>
     </div>
   </nav>
+
 
   <!-- 消息提醒 -->
   {% with messages = get_flashed_messages(with_categories=true) %} {% if

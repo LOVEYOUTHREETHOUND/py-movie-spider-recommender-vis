@@ -10,9 +10,7 @@ import numpy as np
 from collections import defaultdict
 import io
 from flask import current_app
-
-# 创建蓝图
-movie_bp = Blueprint('movie', __name__)
+from app.routes.movie import movie_bp
 
 @movie_bp.route('/type/<type_name>')
 @login_required
@@ -250,11 +248,6 @@ def rate_movie(movie_id):
             "message": "评分失败，请稍后重试",
             "data": None
         }), 500
-
-@movie_bp.route('/visualizations')
-@login_required
-def visualizations():
-    return render_template('movie/visualizations.html')
 
 @movie_bp.route('/api/visualizations/rating-distribution')
 @login_required

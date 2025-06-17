@@ -5,42 +5,23 @@
   <!-- 类型导航 -->
   <div class="mb-4">
     <nav class="nav nav-pills">
-      <a
-        class="nav-link {% if not current_type %}active{% endif %}"
-        href="{{ url_for('movie.movie_list') }}"
-        >全部</a
-      >
+      <a class="nav-link {% if not current_type %}active{% endif %}" href="{{ url_for('movie.movie_list') }}">全部</a>
       {% for type in all_types %}
-      <a
-        class="nav-link {% if current_type and current_type.id == type.id %}active{% endif %}"
-        href="{{ url_for('movie.movie_list_by_type', type_name=type.name) }}"
-      >
+      <a class="nav-link {% if current_type and current_type.id == type.id %}active{% endif %}"
+        href="{{ url_for('movie.movie_list_by_type', type_name=type.name) }}">
         {{ type.name }}
       </a>
       {% endfor %}
     </nav>
   </div>
-
   <!-- 电影列表 -->
   <div class="row">
     {% for movie in movies.items %}
     <div class="col-md-3 mb-4">
       <div class="card h-100">
-        {% if movie.poster_data %}
-        <img
-          src="{{ url_for('movie.movie_poster', movie_id=movie.id) }}"
-          class="card-img-top"
-          alt="{{ movie.title }}"
+        <img src="{{ url_for('movie.movie_poster', movie_id=movie.id) }}" class="card-img-top" alt="{{ movie.title }}"
           style="height: 300px; object-fit: cover"
-        />
-        {% else %}
-        <div
-          class="card-img-top bg-light d-flex align-items-center justify-content-center"
-          style="height: 300px"
-        >
-          <i class="fas fa-film fa-3x text-muted"></i>
-        </div>
-        {% endif %}
+          onerror="this.src='https://via.placeholder.com/300x450.png?text=No+Poster'" />
         <div class="card-body">
           <h5 class="card-title" style="height: 3rem; overflow: hidden">
             {{ movie.title }}
@@ -51,18 +32,21 @@
             </small>
             <br />
             {% if movie.rating %}
-            <span class="text-warning">
-              <i class="fas fa-star"></i>
-              {{ "%.1f"|format(movie.rating) }}
-            </span>
+            <small class="text-warning">
+              <i class="fas fa-star me-1"></i>{{ "%.1f"|format(movie.rating) }}
+            </small>
             {% endif %}
           </p>
           <div class="d-flex justify-content-between align-items-center">
-            <a
-              href="{{ url_for('movie.movie_detail', movie_id=movie.id) }}"
-              class="btn btn-sm btn-outline-primary"
-              >查看详情</a
-            >
+            <a href="{{ url_for('movie.movie_detail', movie_id=movie.id) }}"
+              class="btn btn-sm btn-outline-primary">查看详情</a>
+            {% if current_user.is_authenticated %}
+            <button
+              class="btn btn-sm {% if movie.id in favorite_movie_ids %}btn-danger{% else %}btn-outline-danger{% endif %} favorite-btn"
+              data-movie-id="{{ movie.id }}" title="{% if movie.id in favorite_movie_ids %}取消收藏{% else %}收藏{% endif %}">
+              <i class="fas fa-heart"></i>
+            </button>
+            {% endif %}
             <small class="text-muted">
               {% for type in movie.types %}
               <span class="badge bg-secondary">{{ type.name }}</span>
@@ -81,20 +65,14 @@
     <ul class="pagination justify-content-center">
       {% if movies.has_prev %}
       <li class="page-item">
-        <a
-          class="page-link"
-          href="{{ url_for(request.endpoint, page=movies.prev_num, **request.view_args) }}"
-        >
+        <a class="page-link" href="{{ url_for(request.endpoint, page=movies.prev_num, **request.view_args) }}">
           上一页
         </a>
       </li>
       {% endif %} {% for page_num in movies.iter_pages(left_edge=2,
       left_current=2, right_current=3, right_edge=2) %} {% if page_num %}
       <li class="page-item {% if page_num == movies.page %}active{% endif %}">
-        <a
-          class="page-link"
-          href="{{ url_for(request.endpoint, page=page_num, **request.view_args) }}"
-        >
+        <a class="page-link" href="{{ url_for(request.endpoint, page=page_num, **request.view_args) }}">
           {{ page_num }}
         </a>
       </li>
@@ -104,10 +82,7 @@
       </li>
       {% endif %} {% endfor %} {% if movies.has_next %}
       <li class="page-item">
-        <a
-          class="page-link"
-          href="{{ url_for(request.endpoint, page=movies.next_num, **request.view_args) }}"
-        >
+        <a class="page-link" href="{{ url_for(request.endpoint, page=movies.next_num, **request.view_args) }}">
           下一页
         </a>
       </li>
@@ -116,4 +91,36 @@
   </nav>
   {% endif %}
 </div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // 处理收藏按钮点击
+    document.querySelectorAll(".favorite-btn").forEach((button) => {
+      button.addEventListener("click", async function () {
+        const movieId = this.dataset.movieId;
+        try {
+          const response = await fetch(`/movies/favorite/${movieId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              // 更新按钮状态
+              this.classList.toggle("btn-danger", data.is_favorite);
+              this.classList.toggle("btn-outline-danger", !data.is_favorite);
+              this.title = data.is_favorite ? "取消收藏" : "收藏";
+            }
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("操作失败，请稍后重试");
+        }
+      });
+    });
+  });
+</script>
 {% endblock %}

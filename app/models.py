@@ -17,6 +17,7 @@ class User(UserMixin, db.Model):
     
     # 用户评分
     ratings = db.relationship('Rating', backref='user', lazy=True)
+    favorites = db.relationship('Favorite', backref='user', lazy=True)  # 添加收藏关系
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -61,6 +62,7 @@ class Movie(db.Model):
     
     types = db.relationship('MovieType', secondary='movie_type_association', back_populates='movies')
     ratings = db.relationship('Rating', backref='movie', lazy=True)
+    favorites = db.relationship('Favorite', backref='movie', lazy=True)  # 添加收藏关系
 
     @property
     def user_rating_avg(self):
@@ -93,3 +95,15 @@ class UserSimilarity(db.Model):
     user_id2 = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     similarity = db.Column(db.Float, nullable=False)  # 相似度分数
     created_at = db.Column(db.DateTime, default=datetime.utcnow) 
+
+class Favorite(db.Model):
+    """用户收藏"""
+    __tablename__ = 'favorites'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    movie_id = db.Column(db.Integer, db.ForeignKey('movies.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'movie_id', name='unique_user_movie_favorite'),
+    ) 

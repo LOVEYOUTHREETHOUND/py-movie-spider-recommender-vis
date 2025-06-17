@@ -44,9 +44,9 @@ def create_app(config_class=Config):
     app.jinja_env.filters['b64encode'] = b64encode_filter
 
     # 注册蓝图
-    from app.routes import movie_bp
-    from app.auth import auth_bp
-    app.register_blueprint(movie_bp, url_prefix='/movies')
+    from app.routes.movie import movie_bp
+    from app.routes.auth import auth_bp
+    app.register_blueprint(movie_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
 
     # 添加根路由

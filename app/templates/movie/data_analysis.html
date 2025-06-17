@@ -482,8 +482,8 @@ styles %} {{ super() }}
               if (!details) return '';
 
               let content = `<div style="font-weight: bold; margin-bottom: 5px;">
-                ${data.types[params.data[1]]} (${details.years[0]}-${details.years[details.years.length - 1]})
-              </div>`;
+                  ${data.types[params.data[1]]} (${details.years[0]}-${details.years[details.years.length - 1]})
+                </div>`;
               content += `<div style="margin-bottom: 5px;">平均评分: ${details.avg_rating}</div>`;
               content += '<div style="max-height: 200px; overflow-y: auto;">';
               content += '<table style="width: 100%; border-collapse: collapse;">';
@@ -491,10 +491,10 @@ styles %} {{ super() }}
 
               details.movies.forEach(movie => {
                 content += `<tr>
-                  <td style="text-align: left; padding: 2px;">${movie.title}</td>
-                  <td style="text-align: right; padding: 2px;">${movie.year}</td>
-                  <td style="text-align: right; padding: 2px;">${movie.rating}</td>
-                </tr>`;
+                    <td style="text-align: left; padding: 2px;">${movie.title}</td>
+                    <td style="text-align: right; padding: 2px;">${movie.year}</td>
+                    <td style="text-align: right; padding: 2px;">${movie.rating}</td>
+                  </tr>`;
               });
 
               content += '</table></div>';
