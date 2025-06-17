@@ -1,0 +1,104 @@
+{% extends "base.html" %} {% block title %}搜索结果 - {{ query }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h1 class="mb-4">搜索结果: "{{ query }}"</h1>
+
+  {% if movies %}
+  <div class="row">
+    {% for movie in movies %}
+    <div class="col-md-3 mb-4">
+      <div class="card h-100">
+        <img
+          src="{{ url_for('movie.movie_poster', movie_id=movie.id) }}"
+          class="card-img-top"
+          alt="{{ movie.title }}"
+          style="height: 300px; object-fit: cover"
+          onerror="this.src='https://via.placeholder.com/300x450.png?text=No+Poster'"
+        />
+        <div class="card-body">
+          <h5 class="card-title" style="height: 3rem; overflow: hidden">
+            {{ movie.title }}
+          </h5>
+          <p class="card-text">
+            <small class="text-muted">
+              <i class="fas fa-calendar-alt me-1"></i>{{ movie.year or '未知' }}
+            </small>
+            <br />
+            {% if movie.rating %}
+            <small class="text-warning">
+              <i class="fas fa-star me-1"></i>{{ "%.1f"|format(movie.rating) }}
+            </small>
+            {% endif %}
+          </p>
+          <div class="d-flex justify-content-between align-items-center">
+            <a
+              href="{{ url_for('movie.movie_detail', movie_id=movie.id) }}"
+              class="btn btn-sm btn-outline-primary"
+            >
+              查看详情
+            </a>
+            {% if current_user.is_authenticated %}
+            <button
+              class="btn btn-sm {% if movie.id in favorite_movie_ids %}btn-danger{% else %}btn-outline-danger{% endif %} favorite-btn"
+              data-movie-id="{{ movie.id }}"
+              title="{% if movie.id in favorite_movie_ids %}取消收藏{% else %}收藏{% endif %}"
+            >
+              <i class="fas fa-heart"></i>
+            </button>
+            {% endif %}
+            <small class="text-muted">
+              {% for type in movie.types %}
+              <span class="badge bg-secondary">{{ type.name }}</span>
+              {% endfor %}
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info" role="alert">没有找到匹配的电影。</div>
+  {% endif %}
+
+  <div class="mt-4">
+    <a href="{{ url_for('movie.movie_list') }}" class="btn btn-secondary">
+      返回电影列表
+    </a>
+  </div>
+</div>
+
+<!-- 添加收藏功能的JavaScript代码 -->
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // 处理收藏按钮点击
+    document.querySelectorAll(".favorite-btn").forEach((button) => {
+      button.addEventListener("click", async function () {
+        const movieId = this.dataset.movieId;
+        try {
+          const response = await fetch(`/movies/favorite/${movieId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              // 更新按钮状态
+              this.classList.toggle("btn-danger", data.is_favorite);
+              this.classList.toggle("btn-outline-danger", !data.is_favorite);
+              this.title = data.is_favorite ? "取消收藏" : "收藏";
+            }
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("操作失败，请稍后重试");
+        }
+      });
+    });
+  });
+</script>
+{% endblock %} {% endblock %}

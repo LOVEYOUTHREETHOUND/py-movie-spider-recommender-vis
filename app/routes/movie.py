@@ -235,8 +235,8 @@ def search_movies():
         
     movies = Movie.query.filter(
         Movie.title.ilike(f'%{query}%') |
-        Movie.director.ilike(f'%{query}%') |
-        Movie.cast.ilike(f'%{query}%')
+        Movie.directors.ilike(f'%{query}%') |
+        Movie.actors.ilike(f'%{query}%')
     ).all()
     
     return render_template('movie/search_results.html',
