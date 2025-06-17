@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}我的评分记录{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">我的评分记录</h1>
+
+    {% if ratings.items %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>电影</th>
+                                    <th>评分</th>
+                                    <th>评分时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rating in ratings.items %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('movie.movie_detail', movie_id=rating.movie.id) }}">
+                                            {{ rating.movie.title }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% for i in range(5) %}
+                                        <i class="fas fa-star {% if i < rating.rating %}text-warning{% endif %}"></i>
+                                        {% endfor %}
+                                        ({{ rating.rating }})
+                                    </td>
+                                    <td>{{ rating.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary edit-rating"
+                                            data-movie-id="{{ rating.movie.id }}" data-rating="{{ rating.rating }}">
+                                            修改评分
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    {% if ratings.pages > 1 %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if ratings.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                    href="{{ url_for('movie.user_ratings', page=ratings.prev_num) }}">上一页</a>
+                            </li>
+                            {% endif %}
+
+                            {% for page in ratings.iter_pages() %}
+                            {% if page %}
+                            <li class="page-item {% if page == ratings.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('movie.user_ratings', page=page) }}">{{ page
+                                    }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+
+                            {% if ratings.has_next %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                    href="{{ url_for('movie.user_ratings', page=ratings.next_num) }}">下一页</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <h4 class="alert-heading">暂无评分记录</h4>
+        <p>您还没有对任何电影进行评分。</p>
+        <hr>
+        <p class="mb-0">
+            <a href="{{ url_for('movie.movie_list') }}" class="alert-link">
+                去浏览电影 <i class="fas fa-arrow-right"></i>
+            </a>
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 评分编辑模态框 -->
+<div class="modal fade" id="editRatingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">修改评分</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="rating-stars text-center">
+                    {% for i in range(5) %}
+                    <span class="star" data-rating="{{ i + 1 }}">★</span>
+                    {% endfor %}
+                </div>
+                <input type="hidden" id="editMovieId" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveRating">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const editModal = new bootstrap.Modal(document.getElementById('editRatingModal'));
+        const editMovieId = document.getElementById('editMovieId');
+        const stars = document.querySelectorAll('#editRatingModal .star');
+        let selectedRating = 0;
+
+        // 打开编辑模态框
+        document.querySelectorAll('.edit-rating').forEach(button => {
+            button.addEventListener('click', function () {
+                const movieId = this.dataset.movieId;
+                const currentRating = parseInt(this.dataset.rating);
+
+                editMovieId.value = movieId;
+                selectedRating = currentRating;
+
+                // 设置当前评分
+                stars.forEach((star, index) => {
+                    if (index < currentRating) {
+                        star.classList.add('active');
+                        star.style.color = '#ffd700';
+                    } else {
+                        star.classList.remove('active');
+                        star.style.color = '#ddd';
+                    }
+                });
+
+                editModal.show();
+            });
+        });
+
+        // 星星悬停效果
+        stars.forEach(star => {
+            star.addEventListener('mouseover', function () {
+                const rating = this.dataset.rating;
+                stars.forEach((s, index) => {
+                    if (index < rating) {
+                        s.style.color = '#ffd700';
+                    } else {
+                        s.style.color = '#ddd';
+                    }
+                });
+            });
+
+            star.addEventListener('click', function () {
+                selectedRating = parseInt(this.dataset.rating);
+            });
+        });
+
+        // 鼠标离开星星区域
+        document.querySelector('#editRatingModal .rating-stars').addEventListener('mouseleave', function () {
+            stars.forEach((star, index) => {
+                if (index < selectedRating) {
+                    star.style.color = '#ffd700';
+                } else {
+                    star.style.color = '#ddd';
+                }
+            });
+        });
+
+        // 保存评分
+        document.getElementById('saveRating').addEventListener('click', function () {
+            const movieId = editMovieId.value;
+
+            fetch(`/movies/rate/${movieId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    rating: selectedRating
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        editModal.hide();
+                        // 刷新页面以更新评分显示
+                        window.location.reload();
+                    } else {
+                        alert(data.message || '评分失败，请稍后重试');
+                    }
+                })
+                .catch(error => {
+                    alert('发生错误，请稍后重试');
+                });
+        });
+    });
+</script>
+{% endblock %}

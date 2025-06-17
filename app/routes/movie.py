@@ -6,6 +6,8 @@ from app.recommender import MovieRecommender
 from app.visualization import MovieVisualizer
 from app.douban_spider import DoubanSpider
 import logging
+from datetime import datetime
+from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 movie_bp = Blueprint('movie', __name__, url_prefix='/movies')
@@ -17,6 +19,7 @@ def get_recommender():
         current_app.recommender = MovieRecommender()
     return current_app.recommender
 
+@movie_bp.route('/')
 @movie_bp.route('/')
 @login_required
 def movie_list():
@@ -31,6 +34,7 @@ def movie_list():
                          movies=movies,
                          favorite_movie_ids=favorite_movie_ids)
 
+@movie_bp.route('/<int:movie_id>')
 @movie_bp.route('/<int:movie_id>')
 @login_required
 def movie_detail(movie_id):
@@ -57,51 +61,80 @@ def movie_detail(movie_id):
 
 @movie_bp.route('/rate', methods=['POST'])
 @login_required
-def rate_movie():
+def rate_movie(movie_id):
+    """用户对电影进行评分"""
     try:
-        movie_id = request.form.get('movie_id', type=int)
-        rating = request.form.get('rating', type=float)
-        comment = request.form.get('comment', '')
+        data = request.get_json()
+        current_app.logger.info(f"Received rating request data: {data}")
         
-        if not movie_id or not rating:
-            return jsonify({'error': 'Missing required fields'}), 400
-            
-        # 检查评分是否在有效范围内
+        if not data or 'rating' not in data:
+            return jsonify({
+                "success": False,
+                "message": "请提供评分",
+                "data": None
+            }), 400
+
+        # 获取评分值并确保是整数
+        try:
+            rating = int(data['rating'])
+        except (ValueError, TypeError):
+            return jsonify({
+                "success": False,
+                "message": "无效的评分值",
+                "data": None
+            }), 400
+
+        # 验证评分范围
         if not 1 <= rating <= 5:
-            return jsonify({'error': 'Rating must be between 1 and 5'}), 400
-            
-        # 查找或创建评分记录
-        existing_rating = Rating.query.filter_by(
-            user_id=current_user.id,
-            movie_id=movie_id
-        ).first()
+            return jsonify({
+                "success": False,
+                "message": "评分必须在1-5之间",
+                "data": None
+            }), 400
+
+        # 获取电影信息
+        movie = Movie.query.get_or_404(movie_id)
         
+        # 检查是否已经评分
+        existing_rating = Rating.query.filter_by(
+            user_id=current_user.id, movie_id=movie_id
+        ).first()
+
         if existing_rating:
+            # 更新评分
             existing_rating.rating = rating
-            existing_rating.comment = comment
+            existing_rating.updated_at = datetime.utcnow()
         else:
+            # 创建新评分
             new_rating = Rating(
                 user_id=current_user.id,
                 movie_id=movie_id,
-                rating=rating,
-                comment=comment
+                rating=rating
             )
             db.session.add(new_rating)
-            
+        
         db.session.commit()
         
         # 更新用户相似度
         get_recommender().update_user_similarities()
         
         return jsonify({
-            'success': True,
-            'message': 'Rating saved successfully'
+            "success": True,
+            "message": "评分成功",
+            "data": {
+                "avg_rating": round(float(avg_rating), 1),
+                "rating_count": rating_count
+            }
         })
-        
+
     except Exception as e:
-        logger.error(f"Error saving rating: {str(e)}")
+        current_app.logger.error(f"Error in rate_movie: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': 'Failed to save rating'}), 500
+        return jsonify({
+            "success": False,
+            "message": "评分失败，请稍后重试",
+            "data": None
+        }), 500
 
 @movie_bp.route('/recommendations')
 @login_required
