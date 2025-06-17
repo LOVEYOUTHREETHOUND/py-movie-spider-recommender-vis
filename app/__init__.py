@@ -45,8 +45,10 @@ def create_app(config_class=Config):
 
     # 注册蓝图
     from app.routes import movie_bp, auth_bp
+    from app.routes.api import bp as api_bp
     app.register_blueprint(movie_bp, url_prefix='/movies')
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(api_bp)
 
     # 添加根路由
     @app.route('/')

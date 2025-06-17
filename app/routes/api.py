@@ -1,31 +1,37 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
-from app.models import Food
 from app import db
+from app.visualization import MovieVisualizer
 
-bp = Blueprint('api', __name__)
+bp = Blueprint('api', __name__, url_prefix='/api')
+visualizer = MovieVisualizer(db)
 
-@bp.route('/nutrition/deficit')
+@bp.route('/visualizations/rating-distribution')
 @login_required
-def get_nutrition_deficit():
-    from app.analysis import calculate_deficit
-    deficit = calculate_deficit(current_user.id)
-    if deficit:
-        return jsonify(deficit)
-    return jsonify({'error': '无法计算营养缺口'}), 400
+def rating_distribution_api():
+    return jsonify(visualizer.get_rating_distribution())
 
-@bp.route('/food/search')
+@bp.route('/visualizations/genre-distribution')
 @login_required
-def search_food():
-    query = request.args.get('q', '')
-    if not query:
-        return jsonify([])
-    
-    foods = Food.query.filter(Food.name.like(f'%{query}%')).all()
-    return jsonify([{
-        'id': food.id,
-        'name': food.name,
-        'calories': food.calories,
-        'protein': food.protein,
-        'fat': food.fat
-    } for food in foods]) 
+def genre_distribution_api():
+    return jsonify(visualizer.get_genre_distribution())
+
+@bp.route('/visualizations/year-distribution')
+@login_required
+def year_distribution_api():
+    return jsonify(visualizer.get_year_distribution())
+
+@bp.route('/visualizations/rating-trend')
+@login_required
+def rating_trend_api():
+    return jsonify(visualizer.get_rating_trend())
+
+@bp.route('/visualizations/activity-heatmap')
+@login_required
+def activity_heatmap_api():
+    return jsonify(visualizer.get_activity_heatmap())
+
+@bp.route('/visualizations/top-directors')
+@login_required
+def top_directors_api():
+    return jsonify(visualizer.get_top_directors()) 

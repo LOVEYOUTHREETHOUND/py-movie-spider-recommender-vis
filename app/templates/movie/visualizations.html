@@ -61,7 +61,7 @@ styles %}
     </div>
 
     <div class="chart-container">
-      <h2 class="chart-title">用户活跃度热力图</h2>
+      <h2 class="chart-title">用户活跃度分布</h2>
       <div class="chart-wrapper">
         <canvas id="activityHeatmap"></canvas>
       </div>
@@ -86,12 +86,14 @@ styles %}
         new Chart(document.getElementById("ratingDistribution"), {
           type: "bar",
           data: {
-            labels: data.x,
+            labels: data.x.map((x) => x.toFixed(1) + "分"),
             datasets: [
               {
                 label: "电影数量",
                 data: data.y,
                 backgroundColor: "rgba(54, 162, 235, 0.5)",
+                borderColor: "rgba(54, 162, 235, 1)",
+                borderWidth: 1,
               },
             ],
           },
@@ -101,6 +103,32 @@ styles %}
             scales: {
               y: {
                 beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "电影数量",
+                },
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: "评分",
+                },
+                ticks: {
+                  maxRotation: 45,
+                  minRotation: 45,
+                },
+              },
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: "电影评分分布",
+                font: {
+                  size: 16,
+                },
+              },
+              legend: {
+                display: false,
               },
             },
           },
@@ -139,22 +167,63 @@ styles %}
     fetch("/api/visualizations/year-distribution")
       .then((response) => response.json())
       .then((data) => {
+        // 按照年代对数据进行分组
+        const decades = {};
+        data.x.forEach((year, index) => {
+          const decade = Math.floor(year / 10) * 10;
+          if (!decades[decade]) {
+            decades[decade] = 0;
+          }
+          decades[decade] += data.y[index];
+        });
+
+        const decadeLabels = Object.keys(decades).sort();
+        const decadeCounts = decadeLabels.map((decade) => decades[decade]);
+
         new Chart(document.getElementById("yearDistribution"), {
-          type: "line",
+          type: "bar",
           data: {
-            labels: data.x,
+            labels: decadeLabels.map((d) => d + "s"),
             datasets: [
               {
                 label: "电影数量",
-                data: data.y,
+                data: decadeCounts,
+                backgroundColor: "rgba(75, 192, 192, 0.5)",
                 borderColor: "rgba(75, 192, 192, 1)",
-                tension: 0.1,
+                borderWidth: 1,
               },
             ],
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "电影数量",
+                },
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: "年代",
+                },
+              },
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: "电影年代分布",
+                font: {
+                  size: 16,
+                },
+              },
+              legend: {
+                display: false,
+              },
+            },
           },
         });
       });
@@ -172,48 +241,145 @@ styles %}
                 label: "平均评分",
                 data: data.y,
                 borderColor: "rgba(255, 99, 132, 1)",
-                tension: 0.1,
+                backgroundColor: "rgba(255, 99, 132, 0.2)",
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true,
               },
             ],
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 5,
+                title: {
+                  display: true,
+                  text: "平均评分",
+                },
+              },
+              x: {
+                type: "time",
+                time: {
+                  unit: "day",
+                  displayFormats: {
+                    day: "YYYY-MM-DD",
+                  },
+                },
+                title: {
+                  display: true,
+                  text: "日期",
+                },
+                ticks: {
+                  maxRotation: 45,
+                  minRotation: 45,
+                },
+              },
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: "每日平均评分趋势",
+                font: {
+                  size: 16,
+                },
+              },
+            },
           },
         });
       });
 
-    // 活跃度热力图
+    // 用户活跃度分布图
     fetch("/api/visualizations/activity-heatmap")
       .then((response) => response.json())
       .then((data) => {
-        new Chart(document.getElementById("activityHeatmap"), {
-          type: "heatmap",
+        const ctx = document.getElementById("activityHeatmap");
+        const maxValue = Math.max(...data.data.map((point) => point.value));
+
+        new Chart(ctx, {
+          type: "scatter",
           data: {
-            labels: data.x,
-            datasets: data.y.map((row, i) => ({
-              label: `Week ${i + 1}`,
-              data: row,
-            })),
+            datasets: [
+              {
+                data: data.data.map((point) => ({
+                  x: point.x,
+                  y: point.y,
+                  r: Math.sqrt(point.value / maxValue) * 20, // 根据活动数量调整点的大小，最大值为20
+                })),
+                backgroundColor: data.data.map((point) => {
+                  const intensity = point.value / maxValue;
+                  return `rgba(75, 192, 192, ${Math.max(0.3, intensity)})`;
+                }),
+                pointStyle: "circle",
+              },
+            ],
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-              legend: false,
-            },
             scales: {
+              x: {
+                min: -1,
+                max: 24,
+                title: {
+                  display: true,
+                  text: "小时",
+                },
+                ticks: {
+                  stepSize: 1,
+                },
+              },
               y: {
-                type: "category",
-                labels: [
-                  "周一",
-                  "周二",
-                  "周三",
-                  "周四",
-                  "周五",
-                  "周六",
-                  "周日",
-                ],
+                min: -1,
+                max: 7,
+                title: {
+                  display: true,
+                  text: "星期",
+                },
+                ticks: {
+                  callback: function (value) {
+                    const days = [
+                      "周一",
+                      "周二",
+                      "周三",
+                      "周四",
+                      "周五",
+                      "周六",
+                      "周日",
+                    ];
+                    return days[value] || "";
+                  },
+                },
+              },
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: "用户活动时间分布",
+                font: {
+                  size: 16,
+                },
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const point = data.data[context.dataIndex];
+                    const days = [
+                      "周一",
+                      "周二",
+                      "周三",
+                      "周四",
+                      "周五",
+                      "周六",
+                      "周日",
+                    ];
+                    return `${days[point.y]} ${point.x}时: ${
+                      point.value
+                    }个活动`;
+                  },
+                },
               },
             },
           },
@@ -239,7 +405,28 @@ styles %}
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            indexAxis: "y",
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 10,
+                title: {
+                  display: true,
+                  text: "平均评分",
+                },
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: "导演",
+                },
+              },
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: "评分最高的导演",
+              },
+            },
           },
         });
       });

@@ -189,22 +189,7 @@ def favorite_type_recommendations():
 @movie_bp.route('/visualizations')
 @login_required
 def visualizations():
-    rating_dist = visualizer.get_rating_distribution()
-    genre_dist = visualizer.get_genre_distribution()
-    year_dist = visualizer.get_year_distribution()
-    rating_trend = visualizer.get_rating_trend()
-    activity_heatmap = visualizer.get_activity_heatmap()
-    top_directors = visualizer.get_top_directors()
-    rating_correlation = visualizer.get_rating_correlation_matrix_plot()
-    
-    return render_template('movie/visualizations.html',
-                         rating_dist=rating_dist,
-                         genre_dist=genre_dist,
-                         year_dist=year_dist,
-                         rating_trend=rating_trend,
-                         activity_heatmap=activity_heatmap,
-                         top_directors=top_directors,
-                         rating_correlation=rating_correlation)
+    return render_template('movie/visualizations.html')
 
 @movie_bp.route('/search')
 @login_required

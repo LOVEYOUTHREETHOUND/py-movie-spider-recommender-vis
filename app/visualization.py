@@ -19,52 +19,107 @@ class MovieVisualizer:
     def get_rating_distribution(self):
         """获取评分分布数据"""
         results = self.db.session.query(
-            Rating.rating,
-            func.count(Rating.id).label('count')
-        ).group_by(Rating.rating).all()
-        return [self._row_to_dict(row) for row in results]
+            Movie.rating,
+            func.count(Movie.id).label('count')
+        ).filter(Movie.rating.isnot(None))\
+         .group_by(Movie.rating)\
+         .order_by(Movie.rating)\
+         .all()
+        
+        # 确保有所有评分（1-5分）
+        ratings = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        for row in results:
+            if row.rating in ratings:
+                ratings[row.rating] = row.count
+        
+        return {
+            'x': list(ratings.keys()),
+            'y': list(ratings.values())
+        }
 
     def get_genre_distribution(self):
         """获取电影类型分布数据"""
         results = self.db.session.query(
             MovieType.name,
             func.count(Movie.id).label('count')
-        ).join(Movie.types).group_by(MovieType.name).all()
-        return [self._row_to_dict(row) for row in results]
+        ).join(Movie.types)\
+         .group_by(MovieType.name)\
+         .having(func.count(Movie.id) > 0)\
+         .order_by(func.count(Movie.id).desc())\
+         .all()
+        
+        return {
+            'labels': [row.name for row in results],
+            'values': [row.count for row in results]
+        }
 
     def get_year_distribution(self):
         """获取电影年份分布数据"""
         results = self.db.session.query(
             Movie.year,
             func.count(Movie.id).label('count')
-        ).group_by(Movie.year).order_by(Movie.year).all()
-        return [self._row_to_dict(row) for row in results]
+        ).filter(Movie.year.isnot(None))\
+         .group_by(Movie.year)\
+         .order_by(Movie.year)\
+         .all()
+        
+        # 填充缺失的年份
+        if results:
+            min_year = min(row.year for row in results)
+            max_year = max(row.year for row in results)
+            years = {year: 0 for year in range(min_year, max_year + 1)}
+            for row in results:
+                years[row.year] = row.count
+            
+            return {
+                'x': list(years.keys()),
+                'y': list(years.values())
+            }
+        return {'x': [], 'y': []}
 
     def get_rating_trend(self):
         """获取评分趋势"""
         results = self.db.session.query(
-            Movie.year,
-            func.avg(Movie.rating).label('avg_rating')
-        ).group_by(Movie.year).order_by(Movie.year).all()
-        return [
-            {
-                'year': row.year,
-                'avg_rating': float(row.avg_rating) if row.avg_rating else 0
-            }
-            for row in results
-        ]
+            func.date(Rating.created_at).label('date'),
+            func.avg(Rating.rating).label('avg_rating')
+        ).group_by(func.date(Rating.created_at))\
+         .order_by(func.date(Rating.created_at))\
+         .all()
+        
+        return {
+            'x': [row.date.strftime('%Y-%m-%d') for row in results],
+            'y': [float(row.avg_rating) if row.avg_rating else 0 for row in results]
+        }
 
     def get_activity_heatmap(self):
         """获取用户活动时间分布热力图数据"""
         results = self.db.session.query(
-            func.dayofweek(Rating.created_at).label('day'),
+            func.weekday(Rating.created_at).label('day'),
             func.hour(Rating.created_at).label('hour'),
             func.count(Rating.id).label('count')
-        ).group_by(
-            func.dayofweek(Rating.created_at),
+        ).filter(Rating.created_at.isnot(None))\
+         .group_by(
+            func.weekday(Rating.created_at),
             func.hour(Rating.created_at)
         ).all()
-        return [self._row_to_dict(row) for row in results]
+        
+        # 创建24小时的标签
+        hours = list(range(24))
+        # 创建7天的数据矩阵
+        data = [[0] * 24 for _ in range(7)]
+        
+        # 填充数据
+        for row in results:
+            if row.day is not None and row.hour is not None:
+                day_idx = int(row.day)
+                hour = int(row.hour)
+                if 0 <= day_idx < 7 and 0 <= hour < 24:
+                    data[day_idx][hour] = row.count
+            
+        return {
+            'x': hours,
+            'y': data
+        }
 
     def get_top_directors(self, limit=10):
         """获取评分最高的导演统计"""
@@ -78,14 +133,11 @@ class MovieVisualizer:
          .order_by(func.avg(Movie.rating).desc())\
          .limit(limit)\
          .all()
-        return [
-            {
-                'directors': row.directors,
-                'movie_count': row.movie_count,
-                'avg_rating': float(row.avg_rating) if row.avg_rating else 0
-            }
-            for row in results
-        ]
+        
+        return {
+            'x': [row.directors for row in results],
+            'y': [float(row.avg_rating) if row.avg_rating else 0 for row in results]
+        }
 
     def get_rating_correlation(self):
         """获取用户评分相关性矩阵"""
@@ -124,15 +176,13 @@ class MovieVisualizer:
         ratings = Rating.query.with_entities(Rating.rating).all()
         ratings_df = pd.DataFrame([r[0] for r in ratings], columns=['rating'])
         
-        fig = px.histogram(
-            ratings_df,
-            x='rating',
-            nbins=10,
-            title='用户评分分布',
-            labels={'rating': '评分', 'count': '数量'},
-            template='plotly_white'
-        )
-        return json.loads(fig.to_json())
+        # 计算评分分布
+        rating_counts = ratings_df['rating'].value_counts().sort_index()
+        
+        return {
+            'x': rating_counts.index.tolist(),
+            'y': rating_counts.values.tolist()
+        }
 
     def get_genre_distribution_plot(self):
         """获取电影类型分布图"""
@@ -145,27 +195,23 @@ class MovieVisualizer:
         genre_df = pd.DataFrame(genres, columns=['genre'])
         genre_counts = genre_df['genre'].value_counts()
         
-        fig = px.pie(
-            values=genre_counts.values,
-            names=genre_counts.index,
-            title='电影类型分布',
-            template='plotly_white'
-        )
-        return json.loads(fig.to_json())
+        return {
+            'labels': genre_counts.index.tolist(),
+            'values': genre_counts.values.tolist()
+        }
 
     def get_year_distribution_plot(self):
         """获取电影年份分布图"""
         movies = Movie.query.with_entities(Movie.year).all()
-        years_df = pd.DataFrame([y[0] for y in movies], columns=['year'])
+        years_df = pd.DataFrame([y[0] for y in movies if y[0]], columns=['year'])
         
-        fig = px.histogram(
-            years_df,
-            x='year',
-            title='电影年份分布',
-            labels={'year': '年份', 'count': '数量'},
-            template='plotly_white'
-        )
-        return json.loads(fig.to_json())
+        # 计算年份分布
+        year_counts = years_df['year'].value_counts().sort_index()
+        
+        return {
+            'x': year_counts.index.tolist(),
+            'y': year_counts.values.tolist()
+        }
 
     def get_rating_trend_plot(self):
         """获取评分趋势图"""
@@ -184,15 +230,10 @@ class MovieVisualizer:
             ratings_df['date'].dt.date
         )['rating'].mean().reset_index()
         
-        fig = px.line(
-            daily_ratings,
-            x='date',
-            y='rating',
-            title='每日平均评分趋势',
-            labels={'date': '日期', 'rating': '平均评分'},
-            template='plotly_white'
-        )
-        return json.loads(fig.to_json())
+        return {
+            'x': [d.strftime('%Y-%m-%d') for d in daily_ratings['date']],
+            'y': daily_ratings['rating'].tolist()
+        }
 
     def get_user_activity_heatmap_plot(self):
         """获取用户活动热力图"""
@@ -211,64 +252,49 @@ class MovieVisualizer:
         # 计算每个时段的活动数量
         activity = ratings_df.groupby(['day', 'hour']).size().reset_index(name='count')
         
-        # 创建透视表
-        pivot_table = activity.pivot(
-            index='day',
-            columns='hour',
-            values='count'
-        ).fillna(0)
-        
         # 设置星期几的顺序
         days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        pivot_table = pivot_table.reindex(days_order)
         
-        fig = go.Figure(data=go.Heatmap(
-            z=pivot_table.values,
-            x=pivot_table.columns,
-            y=pivot_table.index,
-            colorscale='Viridis'
-        ))
+        # 转换为散点图数据
+        data = []
+        for _, row in activity.iterrows():
+            day_index = days_order.index(row['day'])
+            data.append({
+                'x': int(row['hour']),
+                'y': day_index,
+                'value': int(row['count'])
+            })
         
-        fig.update_layout(
-            title='用户活动时间分布热力图',
-            xaxis_title='小时',
-            yaxis_title='星期',
-            template='plotly_white'
-        )
-        
-        return json.loads(fig.to_json())
+        return {
+            'data': data,
+            'days': days_order
+        }
 
     def get_top_directors_plot(self):
         """获取评分最高的导演统计图"""
         movies = Movie.query.with_entities(
-            Movie.director, Movie.rating_avg
-        ).filter(Movie.director != '').all()
+            Movie.directors, Movie.rating
+        ).filter(Movie.directors != '').all()
         
         movies_df = pd.DataFrame(
             movies,
-            columns=['director', 'rating']
+            columns=['directors', 'rating']
         )
         
         # 计算每个导演的平均评分和电影数量
-        director_stats = movies_df.groupby('director').agg({
+        director_stats = movies_df.groupby('directors').agg({
             'rating': ['mean', 'count']
         }).reset_index()
-        director_stats.columns = ['director', 'avg_rating', 'movie_count']
+        director_stats.columns = ['directors', 'avg_rating', 'movie_count']
         
         # 筛选出电影数量大于1的导演
         director_stats = director_stats[director_stats['movie_count'] > 1]
         director_stats = director_stats.sort_values('avg_rating', ascending=False).head(10)
         
-        fig = px.bar(
-            director_stats,
-            x='director',
-            y='avg_rating',
-            title='评分最高的导演 (至少2部电影)',
-            labels={'director': '导演', 'avg_rating': '平均评分'},
-            template='plotly_white'
-        )
-        
-        return json.loads(fig.to_json())
+        return {
+            'x': director_stats['directors'].tolist(),
+            'y': director_stats['avg_rating'].round(2).tolist()
+        }
 
     def get_rating_correlation_matrix_plot(self):
         """获取用户评分相关性矩阵"""
