@@ -6,7 +6,7 @@ from app.recommender import MovieRecommender
 from app.visualization import MovieVisualizer
 from app.douban_spider import DoubanSpider
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
@@ -451,3 +451,80 @@ def movie_list_by_type(type_name):
                          all_types=all_types,
                          current_type=movie_type,
                          title=f"{type_name}电影")
+
+# 数据可视化API
+@movie_bp.route('/api/visualizations/rating-distribution')
+@login_required
+def api_rating_distribution():
+    data = visualizer.get_rating_distribution()
+    # ECharts需要x:评分, y:数量
+    x = [d['rating'] for d in data]
+    y = [d['count'] for d in data]
+    return jsonify({'x': x, 'y': y})
+
+@movie_bp.route('/api/visualizations/genre-distribution')
+@login_required
+def api_genre_distribution():
+    data = visualizer.get_genre_distribution()
+    x = [d['name'] for d in data]
+    y = [d['count'] for d in data]
+    return jsonify({'x': x, 'y': y})
+
+@movie_bp.route('/api/visualizations/year-distribution')
+@login_required
+def api_year_distribution():
+    data = visualizer.get_year_distribution()
+    x = [d['year'] for d in data]
+    y = [d['count'] for d in data]
+    return jsonify({'x': x, 'y': y})
+
+@movie_bp.route('/api/visualizations/rating-trend')
+@login_required
+def api_rating_trend():
+    data = visualizer.get_rating_trend()
+    x = [d['year'] for d in data]
+    y = [d['avg_rating'] for d in data]
+    return jsonify({'x': x, 'y': y})
+
+# @movie_bp.route('/api/visualizations/activity-heatmap')
+# @login_required
+# def api_activity_heatmap():
+#     data = visualizer.get_activity_heatmap()
+#     # 直接返回 [{day, hour, count}, ...]
+#     return jsonify(data)
+
+@movie_bp.route('/api/visualizations/top-directors')
+@login_required
+def api_top_directors():
+    data = visualizer.get_top_directors()
+    x = [d['directors'] for d in data]
+    y = [d['avg_rating'] for d in data]
+    return jsonify({'x': x, 'y': y})
+
+@movie_bp.route('/api/visualizations/activity-heatmap')
+@login_required
+def activity_heatmap():
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=7)
+    
+    activities = db.session.query(
+        func.dayofweek(Rating.created_at).label('day'),
+        func.hour(Rating.created_at).label('hour'),
+        func.count(Rating.id).label('count')
+    ).filter(Rating.created_at.between(start_date, end_date)
+    ).group_by('day', 'hour').all()
+    
+    # Initialize 7x24 matrix with zeros
+    heatmap = [[0 for _ in range(24)] for _ in range(7)]
+    
+    # Fill in the counts
+    for activity in activities:
+        day_idx = activity.day - 1  # 1-based to 0-based
+        hour = activity.hour
+        heatmap[day_idx][hour] = activity.count
+    
+    data = {
+        'x': list(range(24)),  # Hours
+        'y': heatmap  # Activity counts per day and hour
+    }
+    return jsonify(data)
